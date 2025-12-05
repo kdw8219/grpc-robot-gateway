@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package robot.api.gateway.v1;
+
+service RobotApiGateway {
+    //Login
+    rpc Login(LoginRequest) returns (LoginResponse);
+
+    //Heartbeat
+    rpc Heartbeat(stream HeartbeatRequest) returns (HeartbeatResponse);
+
+    //control
+    //rpc RobotControl(stream RobotControlRequest) returns (RobotControlResponse);
+
+    //webrtc
+    //rpc HandleRTC(stream RtcRequest) returns (RtcResponse);
+}
+
+message LoginRequest {
+    string robot_id=1;
+    string robot_secret=2;
+}
+
+message LoginResponse {
+    bool success = 1;
+    string access_token=2;
+    string refresh_token=3;
+}
+
+message HeartbeatRequest {
+    string robot_id=1;
+    string internal_ip=2;
+}
+
+message HeartbeatResponse {
+    bool success = 1;
+    string resullt=2;
+}
