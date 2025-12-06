@@ -27,4 +27,4 @@ COPY services ./services
 COPY proto	./proto
 
 EXPOSE 50051
-CMD ["python", "-m", "server.main"]
+CMD ["python", "-m", "app.server.main"]

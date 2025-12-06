@@ -1,4 +1,4 @@
-from core.config import get_settings
+from app.core.config import get_settings
 from aiokafka import AIOKafkaProducer
 
 settings = get_settings()

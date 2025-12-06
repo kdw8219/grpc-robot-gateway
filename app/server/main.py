@@ -1,18 +1,18 @@
 import grpc
 from grpc.aio import server
 
-import services.conn_service as conn_service
-import generated.robot_api_gateway_pb2 as pb
-import generated.robot_api_gateway_pb2_grpc as pb_grpc
+import app.services.conn_service as conn_service
+import app.generated.robot_api_gateway_pb2 as pb
+import app.generated.robot_api_gateway_pb2_grpc as pb_grpc
 import httpx
 from concurrent.futures import ThreadPoolExecutor
 import datetime
 from aiokafka import AIOKafkaProducer
 import json
-from core.config import get_settings
+from app.core.config import get_settings
 import asyncio
 
-class RobotGatewwayService(pb_grpc.RobotApiGatewayServicer):
+class RobotGatewayService(pb_grpc.RobotApiGatewayServicer):
     
     def __init__(self):
         self.executor = ThreadPoolExecutor(max_workers=10)
@@ -28,7 +28,7 @@ class RobotGatewwayService(pb_grpc.RobotApiGatewayServicer):
     
     async def Login(self, request, context):
         
-        if request.username == None or request.password == None:
+        if request.robot_id == "" or request.robot_secret == "":
             return pb.LoginResponse(
                 success=False,
                 access_token="",

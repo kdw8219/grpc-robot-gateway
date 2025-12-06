@@ -1,12 +1,12 @@
 import httpx
 from concurrent.futures import ThreadPoolExecutor
-import clients.rest_client as rest_client
-import clients.kafka_client as kafka_client
-from schemas.robots import RobotCheckInput
-from schemas.heartbeat import HeartbeatInput
+import app.clients.rest_client as rest_client
+import app.clients.kafka_client as kafka_client
+from app.schemas.robots import RobotCheckInput
+from app.schemas.heartbeat import HeartbeatInput
 import datetime
 from aiokafka import AIOKafkaProducer
-from core.config import get_settings
+from app.core.config import get_settings
 
 settings = get_settings()
 
