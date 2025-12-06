@@ -18,6 +18,13 @@ RUN pip install --upgrade pip setuptools wheel
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app ./app
-EXPOSE 8000
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+COPY clients ./clients
+COPY core ./core
+COPY generated ./generated
+COPY schemas ./schemas
+COPY server ./server
+COPY services ./services
+COPY proto	./proto
+
+EXPOSE 50051
+CMD ["python", "-m", "server.main"]

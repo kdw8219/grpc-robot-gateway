@@ -1,22 +1,23 @@
 import grpc
 from grpc.aio import server
 
+import services.conn_service as conn_service
 import generated.robot_api_gateway_pb2 as pb
 import generated.robot_api_gateway_pb2_grpc as pb_grpc
-import services.conn_service as conn_service
 import httpx
 from concurrent.futures import ThreadPoolExecutor
 import datetime
 from aiokafka import AIOKafkaProducer
 import json
 from core.config import get_settings
+import asyncio
 
 class RobotGatewwayService(pb_grpc.RobotApiGatewayServicer):
     
     def __init__(self):
         self.executor = ThreadPoolExecutor(max_workers=10)
         self.settings = get_settings()
-        self.client = httpx.AsycnClient()
+        self.client = httpx.AsyncClient()
         self.kafka = AIOKafkaProducer(bootstrap_servers=self.settings.KAFKA_BOOTSTRAP_SERVER
                              , value_serializer=lambda m: json.dumps(m).encode('utf-8'))
         
@@ -82,8 +83,16 @@ class RobotGatewwayService(pb_grpc.RobotApiGatewayServicer):
         
             
 async def serve():
+    print("Starting gRPC Robot API Gateway Server...")
     svr = server()
     pb_grpc.add_RobotApiGatewayServicer_to_server(RobotGatewwayService(), svr)
+    print("gRPC Robot API Gateway Server started on port 50051")
     svr.add_insecure_port("[::]:50051")
     await svr.start()
+    print("gRPC Robot API Gateway Server is running...")
     await svr.wait_for_termination()
+    print("gRPC Robot API Gateway Server stopped.")
+    
+if __name__ == "__main__":
+    
+    asyncio.run(serve())    

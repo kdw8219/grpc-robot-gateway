@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-import robot_api_gateway_pb2 as robot__api__gateway__pb2
+from generated import robot_api_gateway_pb2 as robot__api__gateway__pb2
 
 GRPC_GENERATED_VERSION = '1.76.0'
 GRPC_VERSION = grpc.__version__

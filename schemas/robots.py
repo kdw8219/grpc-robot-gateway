@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional
-from app.schemas.robot import Robot
+from schemas.robot import Robot
 
 class RobotCheckInput(BaseModel):
     robot_id:str = Field(..., description="Robot ID")
