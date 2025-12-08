@@ -10,7 +10,7 @@ async def test_login_success(grpc_server, monkeypatch):
     
     async def mock_login_service(client, data):
         class MockResponse:
-            def raise_and_status(self):pass
+            def raise_for_status(self): pass
             def json(self):
                 return {
                     'access_token':'test_access_token',
@@ -32,5 +32,4 @@ async def test_login_success(grpc_server, monkeypatch):
         
         assert response.success == True
         assert response.access_token == 'test_access_token'
-        assert response.refresh_token == 'test_refresh_token'
-            
+        assert response.refresh_token == 'test_refresh_token'            
