@@ -5,7 +5,6 @@ import app.services.conn_service as conn_service
 import app.generated.robot_api_gateway_pb2 as pb
 import app.generated.robot_api_gateway_pb2_grpc as pb_grpc
 import httpx
-from concurrent.futures import ThreadPoolExecutor
 import datetime
 from aiokafka import AIOKafkaProducer
 import json
@@ -14,8 +13,7 @@ import asyncio
 
 class RobotGatewayService(pb_grpc.RobotApiGatewayServicer):
     
-    def __aenter__(self, kafka_producer=None):
-        self.executor = ThreadPoolExecutor(max_workers=10)
+    async def __aenter__(self, kafka_producer=None):
         self.settings = get_settings()
         self.client = httpx.AsyncClient()
         self.kafka = kafka_producer or AIOKafkaProducer(
@@ -24,7 +22,7 @@ class RobotGatewayService(pb_grpc.RobotApiGatewayServicer):
         )
         
         if isinstance(self.kafka, AIOKafkaProducer):   # 실제 producer일 때만 start
-            self.kafka.start() # kafka 스타트는 굳이 async로 처리할 이유는 없다.
+            await self.kafka.start()
             
         return self
         
@@ -71,7 +69,7 @@ class RobotGatewayService(pb_grpc.RobotApiGatewayServicer):
                 'timestamp': datetime.datetime.now().isoformat(),
             }
             heartbeat_response = await conn_service.heartbeat_service(
-                self.client, self.executor, self.kafka, json_data
+                self.client, self.kafka, json_data
             )
             heartbeat_response.raise_for_status()
             

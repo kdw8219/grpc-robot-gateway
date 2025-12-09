@@ -18,13 +18,7 @@ RUN pip install --upgrade pip setuptools wheel
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY clients ./clients
-COPY core ./core
-COPY generated ./generated
-COPY schemas ./schemas
-COPY server ./server
-COPY services ./services
-COPY proto	./proto
+COPY app ./app
 
 EXPOSE 50051
 CMD ["python", "-m", "app.server.main"]
