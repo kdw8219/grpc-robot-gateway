@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x17robot_api_gateway.proto\x12\x14robot.api.gateway.v1\"6\n\x0cLoginRequest\x12\x10\n\x08robot_id\x18\x01 \x01(\t\x12\x14\n\x0crobot_secret\x18\x02 \x01(\t\"M\n\rLoginResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x14\n\x0c\x61\x63\x63\x65ss_token\x18\x02 \x01(\t\x12\x15\n\rrefresh_token\x18\x03 \x01(\t\"9\n\x10HeartbeatRequest\x12\x10\n\x08robot_id\x18\x01 \x01(\t\x12\x13\n\x0binternal_ip\x18\x02 \x01(\t\"5\n\x11HeartbeatResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07resullt\x18\x02 \x01(\t2\xc3\x01\n\x0fRobotApiGateway\x12P\n\x05Login\x12\".robot.api.gateway.v1.LoginRequest\x1a#.robot.api.gateway.v1.LoginResponse\x12^\n\tHeartbeat\x12&.robot.api.gateway.v1.HeartbeatRequest\x1a\'.robot.api.gateway.v1.HeartbeatResponse(\x01\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x17robot_api_gateway.proto\x12\x14robot.api.gateway.v1\"6\n\x0cLoginRequest\x12\x10\n\x08robot_id\x18\x01 \x01(\t\x12\x14\n\x0crobot_secret\x18\x02 \x01(\t\"M\n\rLoginResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x14\n\x0c\x61\x63\x63\x65ss_token\x18\x02 \x01(\t\x12\x15\n\rrefresh_token\x18\x03 \x01(\t\"9\n\x10HeartbeatRequest\x12\x10\n\x08robot_id\x18\x01 \x01(\t\x12\x13\n\x0binternal_ip\x18\x02 \x01(\t\"4\n\x11HeartbeatResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0e\n\x06result\x18\x02 \x01(\t2\xc1\x01\n\x0fRobotApiGateway\x12P\n\x05Login\x12\".robot.api.gateway.v1.LoginRequest\x1a#.robot.api.gateway.v1.LoginResponse\x12\\\n\tHeartbeat\x12&.robot.api.gateway.v1.HeartbeatRequest\x1a\'.robot.api.gateway.v1.HeartbeatResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -38,7 +38,7 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_HEARTBEATREQUEST']._serialized_start=184
   _globals['_HEARTBEATREQUEST']._serialized_end=241
   _globals['_HEARTBEATRESPONSE']._serialized_start=243
-  _globals['_HEARTBEATRESPONSE']._serialized_end=296
-  _globals['_ROBOTAPIGATEWAY']._serialized_start=299
-  _globals['_ROBOTAPIGATEWAY']._serialized_end=494
+  _globals['_HEARTBEATRESPONSE']._serialized_end=295
+  _globals['_ROBOTAPIGATEWAY']._serialized_start=298
+  _globals['_ROBOTAPIGATEWAY']._serialized_end=491
 # @@protoc_insertion_point(module_scope)

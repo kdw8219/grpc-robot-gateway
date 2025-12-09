@@ -31,14 +31,7 @@ async def heartbeat_service(client:httpx.AsyncClient, executor:ThreadPoolExecuto
         raise HeartbeatServiceError(e)
     
     topic = settings.HEARTBEAT_TOPIC
-    payload = {
-        'robot_id':data['robot_id'],
-        'is_alive':True,
-        'stream_ip':data['stream_ip'],
-        'timestamp':datetime.datetime.now().isoformat()
-    }
-    
-    executor.submit(kafka_client.send_kafka_heartbeat, kafka, topic, payload) # 별도 스레드 동작
+    executor.submit(kafka_client.send_kafka_heartbeat, kafka, topic, data) # 별도 스레드 동작
     
     return response
 

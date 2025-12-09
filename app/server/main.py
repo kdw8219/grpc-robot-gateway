@@ -14,20 +14,27 @@ import asyncio
 
 class RobotGatewayService(pb_grpc.RobotApiGatewayServicer):
     
-    def __init__(self):
+    def __aenter__(self, kafka_producer=None):
         self.executor = ThreadPoolExecutor(max_workers=10)
         self.settings = get_settings()
         self.client = httpx.AsyncClient()
-        self.kafka = AIOKafkaProducer(bootstrap_servers=self.settings.KAFKA_BOOTSTRAP_SERVER
-                             , value_serializer=lambda m: json.dumps(m).encode('utf-8'))
+        self.kafka = kafka_producer or AIOKafkaProducer(
+            bootstrap_servers=self.settings.KAFKA_BOOTSTRAP_SERVER,
+            value_serializer=lambda m: json.dumps(m).encode('utf-8'),
+        )
         
-    def __del__(self):
+        if isinstance(self.kafka, AIOKafkaProducer):   # 실제 producer일 때만 start
+            self.kafka.start() # kafka 스타트는 굳이 async로 처리할 이유는 없다.
+            
+        return self
+        
+    
+    async def __aexit__(self, exc_type, exc, tb):
         self.executor.shutdown(wait=False)
-        self.client.aclose()
-        self.kafka.stop()
+        await self.client.aclose()
+        await self.kafka.stop()
     
     async def Login(self, request, context):
-        
         if request.robot_id == "" or request.robot_secret == "":
             return pb.LoginResponse(
                 success=False,
@@ -37,62 +44,71 @@ class RobotGatewayService(pb_grpc.RobotApiGatewayServicer):
         
         try:
             json_data = {
-                'robot_id':request.robot_id,
-                'robot_secret':request.robot_secret
+                'robot_id': request.robot_id,
+                'robot_secret': request.robot_secret,
             }
-            login_response = await conn_service.login_service(self.client, data = json_data)
+            login_response = await conn_service.login_service(self.client, data=json_data)
             login_response.raise_for_status()
             
             return pb.LoginResponse(
                 success=True,
-                access_token="" + login_response.json().get('access_token', ''),
-                refresh_token="" + login_response.json().get('refresh_token', ''),
+                access_token=login_response.json().get('access_token', ''),
+                refresh_token=login_response.json().get('refresh_token', ''),
             )
-            
-        except Exception as e:
+        except Exception:
             return pb.LoginResponse(
                 success=False,
                 access_token="",
                 refresh_token="",
-            ) 
+            )
             
     async def Heartbeat(self, request, context):
-        
         try:
             json_data = {
-                'robot_id':request.robot_id,
-                'is_alive':True,
-                'stream_ip':request.internal_ip,
-                'timestamp':datetime.datetime.now().isoformat()
+                'robot_id': request.robot_id,
+                'is_alive': True,
+                'stream_ip': request.internal_ip,
+                'timestamp': datetime.datetime.now().isoformat(),
             }
-            login_response = await conn_service.heartbeat_service(self.client, self.executor, self.kafka, data = json_data)
-            login_response.raise_for_status()
+            heartbeat_response = await conn_service.heartbeat_service(
+                self.client, self.executor, self.kafka, json_data
+            )
+            heartbeat_response.raise_for_status()
             
             return pb.HeartbeatResponse(
                 success=True,
-                access_token="" + login_response.json().get('access_token', ''),
-                refresh_token="" + login_response.json().get('refresh_token', ''),
+                result=heartbeat_response.json().get('result', ''),
             )
-            
+        except asyncio.CancelledError:
+            raise  # 이건 gRPC에 그대로 CancelledError로 전달됨
+    
         except Exception as e:
             return pb.HeartbeatResponse(
                 success=False,
-                access_token="",
-                refresh_token="",
-            )       
-        
-            
+                result=heartbeat_response.json().get('result', ''),
+            )
+
+
 async def serve():
     print("Starting gRPC Robot API Gateway Server...")
+    service = RobotGatewayService()
+    await service.__aenter__()
     svr = server()
-    pb_grpc.add_RobotApiGatewayServicer_to_server(RobotGatewwayService(), svr)
-    print("gRPC Robot API Gateway Server started on port 50051")
+    pb_grpc.add_RobotApiGatewayServicer_to_server(service, svr)
     svr.add_insecure_port("[::]:50051")
+
     await svr.start()
     print("gRPC Robot API Gateway Server is running...")
-    await svr.wait_for_termination()
+
+    try:
+        await svr.wait_for_termination()
+    except asyncio.CancelledError:
+            # 테스트에서 서버 task를 cancel 할 때를 위한 처리
+        await svr.stop(0)
+    finally:
+        service.__aexit__(None, None, None)
     print("gRPC Robot API Gateway Server stopped.")
-    
+
+
 if __name__ == "__main__":
-    
-    asyncio.run(serve())    
+    asyncio.run(serve())

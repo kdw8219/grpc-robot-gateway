@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-from app.generated import robot_api_gateway_pb2 as robot__api__gateway__pb2
+import app.generated.robot_api_gateway_pb2 as robot__api__gateway__pb2
 
 GRPC_GENERATED_VERSION = '1.76.0'
 GRPC_VERSION = grpc.__version__
@@ -39,7 +39,7 @@ class RobotApiGatewayStub(object):
                 request_serializer=robot__api__gateway__pb2.LoginRequest.SerializeToString,
                 response_deserializer=robot__api__gateway__pb2.LoginResponse.FromString,
                 _registered_method=True)
-        self.Heartbeat = channel.stream_unary(
+        self.Heartbeat = channel.unary_unary(
                 '/robot.api.gateway.v1.RobotApiGateway/Heartbeat',
                 request_serializer=robot__api__gateway__pb2.HeartbeatRequest.SerializeToString,
                 response_deserializer=robot__api__gateway__pb2.HeartbeatResponse.FromString,
@@ -56,7 +56,7 @@ class RobotApiGatewayServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def Heartbeat(self, request_iterator, context):
+    def Heartbeat(self, request, context):
         """Heartbeat
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -71,7 +71,7 @@ def add_RobotApiGatewayServicer_to_server(servicer, server):
                     request_deserializer=robot__api__gateway__pb2.LoginRequest.FromString,
                     response_serializer=robot__api__gateway__pb2.LoginResponse.SerializeToString,
             ),
-            'Heartbeat': grpc.stream_unary_rpc_method_handler(
+            'Heartbeat': grpc.unary_unary_rpc_method_handler(
                     servicer.Heartbeat,
                     request_deserializer=robot__api__gateway__pb2.HeartbeatRequest.FromString,
                     response_serializer=robot__api__gateway__pb2.HeartbeatResponse.SerializeToString,
@@ -115,7 +115,7 @@ class RobotApiGateway(object):
             _registered_method=True)
 
     @staticmethod
-    def Heartbeat(request_iterator,
+    def Heartbeat(request,
             target,
             options=(),
             channel_credentials=None,
@@ -125,8 +125,8 @@ class RobotApiGateway(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.stream_unary(
-            request_iterator,
+        return grpc.experimental.unary_unary(
+            request,
             target,
             '/robot.api.gateway.v1.RobotApiGateway/Heartbeat',
             robot__api__gateway__pb2.HeartbeatRequest.SerializeToString,

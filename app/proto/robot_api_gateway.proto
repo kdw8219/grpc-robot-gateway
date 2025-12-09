@@ -7,7 +7,7 @@ service RobotApiGateway {
     rpc Login(LoginRequest) returns (LoginResponse);
 
     //Heartbeat
-    rpc Heartbeat(stream HeartbeatRequest) returns (HeartbeatResponse);
+    rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
 
     //control
     //rpc RobotControl(stream RobotControlRequest) returns (RobotControlResponse);
@@ -34,5 +34,5 @@ message HeartbeatRequest {
 
 message HeartbeatResponse {
     bool success = 1;
-    string resullt=2;
+    string result=2;
 }
