@@ -44,6 +44,16 @@ class RobotApiGatewayStub(object):
                 request_serializer=robot__api__gateway__pb2.HeartbeatRequest.SerializeToString,
                 response_deserializer=robot__api__gateway__pb2.HeartbeatResponse.FromString,
                 _registered_method=True)
+        self.Status = channel.unary_unary(
+                '/robot.api.gateway.v1.RobotApiGateway/Status',
+                request_serializer=robot__api__gateway__pb2.StatusRequest.SerializeToString,
+                response_deserializer=robot__api__gateway__pb2.StatusResponse.FromString,
+                _registered_method=True)
+        self.Pos = channel.unary_unary(
+                '/robot.api.gateway.v1.RobotApiGateway/Pos',
+                request_serializer=robot__api__gateway__pb2.PosRequest.SerializeToString,
+                response_deserializer=robot__api__gateway__pb2.PosResponse.FromString,
+                _registered_method=True)
 
 
 class RobotApiGatewayServicer(object):
@@ -63,6 +73,20 @@ class RobotApiGatewayServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def Status(self, request, context):
+        """status
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Pos(self, request, context):
+        """status
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_RobotApiGatewayServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -75,6 +99,16 @@ def add_RobotApiGatewayServicer_to_server(servicer, server):
                     servicer.Heartbeat,
                     request_deserializer=robot__api__gateway__pb2.HeartbeatRequest.FromString,
                     response_serializer=robot__api__gateway__pb2.HeartbeatResponse.SerializeToString,
+            ),
+            'Status': grpc.unary_unary_rpc_method_handler(
+                    servicer.Status,
+                    request_deserializer=robot__api__gateway__pb2.StatusRequest.FromString,
+                    response_serializer=robot__api__gateway__pb2.StatusResponse.SerializeToString,
+            ),
+            'Pos': grpc.unary_unary_rpc_method_handler(
+                    servicer.Pos,
+                    request_deserializer=robot__api__gateway__pb2.PosRequest.FromString,
+                    response_serializer=robot__api__gateway__pb2.PosResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -131,6 +165,60 @@ class RobotApiGateway(object):
             '/robot.api.gateway.v1.RobotApiGateway/Heartbeat',
             robot__api__gateway__pb2.HeartbeatRequest.SerializeToString,
             robot__api__gateway__pb2.HeartbeatResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def Status(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/robot.api.gateway.v1.RobotApiGateway/Status',
+            robot__api__gateway__pb2.StatusRequest.SerializeToString,
+            robot__api__gateway__pb2.StatusResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def Pos(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/robot.api.gateway.v1.RobotApiGateway/Pos',
+            robot__api__gateway__pb2.PosRequest.SerializeToString,
+            robot__api__gateway__pb2.PosResponse.FromString,
             options,
             channel_credentials,
             insecure,

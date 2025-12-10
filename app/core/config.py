@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     ROBOT_STATS_HEARTBEAT: str
     KAFKA_BOOTSTRAP_SERVER: str
     HEARTBEAT_TOPIC: str
+    POS_TOPIC: str
+    STATUS_TOPIC: str
     
     class Config:
         env_file = ".env"

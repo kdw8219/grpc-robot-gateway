@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x17robot_api_gateway.proto\x12\x14robot.api.gateway.v1\"6\n\x0cLoginRequest\x12\x10\n\x08robot_id\x18\x01 \x01(\t\x12\x14\n\x0crobot_secret\x18\x02 \x01(\t\"M\n\rLoginResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x14\n\x0c\x61\x63\x63\x65ss_token\x18\x02 \x01(\t\x12\x15\n\rrefresh_token\x18\x03 \x01(\t\"9\n\x10HeartbeatRequest\x12\x10\n\x08robot_id\x18\x01 \x01(\t\x12\x13\n\x0binternal_ip\x18\x02 \x01(\t\"4\n\x11HeartbeatResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0e\n\x06result\x18\x02 \x01(\t2\xc1\x01\n\x0fRobotApiGateway\x12P\n\x05Login\x12\".robot.api.gateway.v1.LoginRequest\x1a#.robot.api.gateway.v1.LoginResponse\x12\\\n\tHeartbeat\x12&.robot.api.gateway.v1.HeartbeatRequest\x1a\'.robot.api.gateway.v1.HeartbeatResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x17robot_api_gateway.proto\x12\x14robot.api.gateway.v1\"6\n\x0cLoginRequest\x12\x10\n\x08robot_id\x18\x01 \x01(\t\x12\x14\n\x0crobot_secret\x18\x02 \x01(\t\"M\n\rLoginResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x14\n\x0c\x61\x63\x63\x65ss_token\x18\x02 \x01(\t\x12\x15\n\rrefresh_token\x18\x03 \x01(\t\"$\n\x10HeartbeatRequest\x12\x10\n\x08robot_id\x18\x01 \x01(\t\"4\n\x11HeartbeatResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0e\n\x06result\x18\x02 \x01(\t\"Q\n\rStatusRequest\x12\x10\n\x08robot_id\x18\x01 \x01(\t\x12\x0f\n\x07\x62\x61ttery\x18\x02 \x01(\x02\x12\x0e\n\x06status\x18\x03 \x01(\t\x12\r\n\x05\x65rror\x18\x04 \x01(\t\"1\n\x0eStatusResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0e\n\x06result\x18\x02 \x01(\t\"\xac\x01\n\nPosRequest\x12\x10\n\x08robot_id\x18\x01 \x01(\t\x12\t\n\x01x\x18\x02 \x01(\x01\x12\t\n\x01y\x18\x03 \x01(\x01\x12\t\n\x01z\x18\x04 \x01(\x01\x12\x0e\n\x06orig_x\x18\x05 \x01(\x01\x12\x0e\n\x06orig_y\x18\x06 \x01(\x01\x12\x0e\n\x06orig_z\x18\x07 \x01(\x01\x12\x0e\n\x06orig_w\x18\x08 \x01(\x01\x12\x14\n\x0clinear_angle\x18\t \x01(\x01\x12\x15\n\rangular_speed\x18\n \x01(\x01\".\n\x0bPosResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0e\n\x06result\x18\x02 \x01(\t2\xe2\x02\n\x0fRobotApiGateway\x12P\n\x05Login\x12\".robot.api.gateway.v1.LoginRequest\x1a#.robot.api.gateway.v1.LoginResponse\x12\\\n\tHeartbeat\x12&.robot.api.gateway.v1.HeartbeatRequest\x1a\'.robot.api.gateway.v1.HeartbeatResponse\x12S\n\x06Status\x12#.robot.api.gateway.v1.StatusRequest\x1a$.robot.api.gateway.v1.StatusResponse\x12J\n\x03Pos\x12 .robot.api.gateway.v1.PosRequest\x1a!.robot.api.gateway.v1.PosResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -36,9 +36,17 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_LOGINRESPONSE']._serialized_start=105
   _globals['_LOGINRESPONSE']._serialized_end=182
   _globals['_HEARTBEATREQUEST']._serialized_start=184
-  _globals['_HEARTBEATREQUEST']._serialized_end=241
-  _globals['_HEARTBEATRESPONSE']._serialized_start=243
-  _globals['_HEARTBEATRESPONSE']._serialized_end=295
-  _globals['_ROBOTAPIGATEWAY']._serialized_start=298
-  _globals['_ROBOTAPIGATEWAY']._serialized_end=491
+  _globals['_HEARTBEATREQUEST']._serialized_end=220
+  _globals['_HEARTBEATRESPONSE']._serialized_start=222
+  _globals['_HEARTBEATRESPONSE']._serialized_end=274
+  _globals['_STATUSREQUEST']._serialized_start=276
+  _globals['_STATUSREQUEST']._serialized_end=357
+  _globals['_STATUSRESPONSE']._serialized_start=359
+  _globals['_STATUSRESPONSE']._serialized_end=408
+  _globals['_POSREQUEST']._serialized_start=411
+  _globals['_POSREQUEST']._serialized_end=583
+  _globals['_POSRESPONSE']._serialized_start=585
+  _globals['_POSRESPONSE']._serialized_end=631
+  _globals['_ROBOTAPIGATEWAY']._serialized_start=634
+  _globals['_ROBOTAPIGATEWAY']._serialized_end=988
 # @@protoc_insertion_point(module_scope)

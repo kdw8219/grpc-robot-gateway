@@ -9,6 +9,12 @@ service RobotApiGateway {
     //Heartbeat
     rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
 
+    //status
+    rpc Status(StatusRequest) returns (StatusResponse);
+
+    //status
+    rpc Pos(PosRequest) returns (PosResponse);
+
     //control
     //rpc RobotControl(stream RobotControlRequest) returns (RobotControlResponse);
 
@@ -29,10 +35,39 @@ message LoginResponse {
 
 message HeartbeatRequest {
     string robot_id=1;
-    string internal_ip=2;
 }
 
 message HeartbeatResponse {
+    bool success = 1;
+    string result=2;
+}
+
+message StatusRequest {
+    string robot_id=1;
+    float battery=2;
+    string status=3;
+    string error=4;
+}
+
+message StatusResponse {
+    bool success = 1;
+    string result=2;
+}
+
+message PosRequest {
+    string robot_id=1;
+    double x=2;
+    double y=3;
+    double z=4;
+    double orig_x=5;
+    double orig_y=6;
+    double orig_z=7;
+    double orig_w=8;
+    double linear_angle=9;
+    double angular_speed=10;
+}
+
+message PosResponse {
     bool success = 1;
     string result=2;
 }

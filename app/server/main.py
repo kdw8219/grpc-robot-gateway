@@ -65,7 +65,6 @@ class RobotGatewayService(pb_grpc.RobotApiGatewayServicer):
             json_data = {
                 'robot_id': request.robot_id,
                 'is_alive': True,
-                'stream_ip': request.internal_ip,
                 'timestamp': datetime.datetime.now().isoformat(),
             }
             heartbeat_response = await conn_service.heartbeat_service(
@@ -84,6 +83,65 @@ class RobotGatewayService(pb_grpc.RobotApiGatewayServicer):
             return pb.HeartbeatResponse(
                 success=False,
                 result=heartbeat_response.json().get('result', ''),
+            )
+            
+    async def Pos(self, request, context):
+        try:
+            json_data = {
+                'robot_id': request.robot_id,
+                'x': float(request.x),
+                'y': float(request.y),
+                'z': float(request.z),
+                'orig_x': float(request.orig_x),
+                'orig_y': float(request.orig_y),
+                'orig_z': float(request.orig_z),
+                'orig_w': float(request.orig_w),
+                'linear_angle': float(request.linear_angle),
+                'angular_speed': float(request.angular_speed),
+                'stream_ip': float(request.internal_ip),
+                'timestamp': datetime.datetime.now().isoformat(),
+            }
+            await conn_service.pos_service(
+                self.kafka, json_data
+            )
+            
+            return pb.PosResponse(
+                success=True,
+                result='Success',
+            )
+        except asyncio.CancelledError:
+            raise  # 이건 gRPC에 그대로 CancelledError로 전달됨
+    
+        except Exception as e:
+            return pb.PosResponse(
+                success=False,
+                result=''
+            )
+            
+    async def Status(self, request, context):
+        try:
+            json_data = {
+                'robot_id': request.robot_id,
+                'battery': float(request.battery),
+                'status': request.status,
+                'error': request.error,
+                'timestamp': datetime.datetime.now().isoformat(),
+            }
+            await conn_service.status_service(
+                self.kafka, json_data
+            )
+            
+            return pb.StatusResponse(
+                success=True,
+                result='Success',
+            )
+        except asyncio.CancelledError:
+            raise  # 이건 gRPC에 그대로 CancelledError로 전달됨
+    
+        except Exception as e:
+            return pb.StatusResponse(
+                success=False,
+                result=''
             )
 
 
