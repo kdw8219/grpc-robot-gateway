@@ -96,9 +96,8 @@ class RobotGatewayService(pb_grpc.RobotApiGatewayServicer):
                 'orig_y': float(request.orig_y),
                 'orig_z': float(request.orig_z),
                 'orig_w': float(request.orig_w),
-                'linear_angle': float(request.linear_angle),
+                'linear_speed': float(request.linear_speed),
                 'angular_speed': float(request.angular_speed),
-                'stream_ip': float(request.internal_ip),
                 'timestamp': datetime.datetime.now().isoformat(),
             }
             await conn_service.pos_service(

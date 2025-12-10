@@ -63,7 +63,7 @@ message PosRequest {
     double orig_y=6;
     double orig_z=7;
     double orig_w=8;
-    double linear_angle=9;
+    double linear_speed=9;
     double angular_speed=10;
 }
 
