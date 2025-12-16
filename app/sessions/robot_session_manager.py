@@ -59,6 +59,11 @@ class RobotSessionManager:
                     
         for session in expired:
             await self.cleanup_session(session)
+        
+        # need to add Robot offline event like this.    
+        # await self.event_bus.publish(
+        #    RobotOfflineEvent(session.robot_id)
+        #)
 
     async def cleanup_session(self, session: RobotSession):
         if session.control_channel:
@@ -69,11 +74,16 @@ class RobotSessionManager:
 
         session.control_channel = None
         session.control_stub = None
+        session.robot_addr = ""
 
-        if session.signal_stream:
+        if session.robot_stream:
             try:
-                await session.signal_stream.cancel()
+                await session.robot_stream.cancel()
             except Exception:
                 pass
 
-        session.signal_stream = None
+        session.robot_stream = None
+        
+    async def mark_offline_and_cleanup(self, session: RobotSession, robot_id):
+        await self.mark_offline(robot_id)
+        await self.sweep_expired()
