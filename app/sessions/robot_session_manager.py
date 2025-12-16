@@ -46,6 +46,7 @@ class RobotSessionManager:
 
     async def sweep_expired(self):
         now = time.time()
+        expired = []
         async with self._lock:
             for session in self._sessions.values():
                 if (
@@ -53,4 +54,26 @@ class RobotSessionManager:
                     and now - session.last_heartbeat > HEARTBEAT_TIMEOUT
                 ):
                     session.mark_offline()
+                    expired.append(session)
                     # 여기서 event push 가능
+                    
+        for session in expired:
+            await self.cleanup_session(session)
+
+    async def cleanup_session(self, session: RobotSession):
+        if session.control_channel:
+            try:
+                await session.control_channel.close()
+            except Exception:
+                pass
+
+        session.control_channel = None
+        session.control_stub = None
+
+        if session.signal_stream:
+            try:
+                await session.signal_stream.cancel()
+            except Exception:
+                pass
+
+        session.signal_stream = None
