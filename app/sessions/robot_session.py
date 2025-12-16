@@ -17,7 +17,11 @@ class RobotSession:
         
          # control / signaling 용 핸들
         self.control_channel = None      # SendCommand를 처리할 대상
-        self.signal_stream = None
+        
+        # robot 쪽도 bidnirectional stream 이 있어야 하고, gateway 쪽도 bidirectional stream이 있어야..
+        # 근데 이게 최선인가?
+        self.robot_stream = None     # robot → api
+        self.gateway_stream = None   # gateway → api
 
     def touch(self):
         self.last_heartbeat = time.time()
