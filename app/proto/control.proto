@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package robot.control;
+
+service RobotControlService {
+  rpc SendCommand(CommandRequest) returns (CommandResponse);
+}
+
+/* ===== Request / Response ===== */
+
+message CommandRequest {
+  string robot_id = 1;
+  CommandType command = 2;
+
+  oneof payload {
+    MovePayload move = 3;
+    SetSpeedPayload set_speed = 4;
+    PathFollowPayload path_follow = 5;
+
+    // stop, e_stop, dock 등 payload가 없는 경우는 oneof 사용하지 않음
+  }
+}
+
+message CommandResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+/* ===== Command Types ===== */
+
+enum CommandType {
+  COMMAND_UNKNOWN = 0;
+
+  MOVE = 1;
+  STOP = 2;
+  EMERGENCY_STOP = 3;
+
+  SET_SPEED = 4;
+  DOCK = 5;
+
+  PATH_FOLLOW = 6;
+}
+
+/* ===== Payload Messages ===== */
+
+message MovePayload {
+  string direction = 1;  // "forward", "backward", "left", "right"
+  double speed = 2;      // 기본값 1.0
+}
+
+message SetSpeedPayload {
+  double speed = 1;
+}
+
+message PathFollowPayload {
+  string path_id = 1;
+}
