@@ -5,10 +5,15 @@ import asyncio
 import app.generated.robot_api_gateway_pb2_grpc as pb_grpc
 import app.generated.control_pb2_grpc as control_pb_grpc
 import app.generated.signaling_pb2_grpc as signaling_pb_grpc
+import app.generated.robot_request_control_pb2_grpc as rb_control_pb_grpc
+
 import app.services.RobotGatewayService as RobotGatewayService
 import app.services.RobotControlService as RobotControlService
 import app.services.RobotSignalService as RobotSignalService
+import app.services.RobotRequestControlService as RobotRequestControlService
 from app.sessions.robot_session_manager import RobotSessionManager
+
+import queue
 
 async def start_session_watcher(manager: RobotSessionManager):
     try:
@@ -29,15 +34,21 @@ async def serve():
     service = RobotGatewayService.RobotGatewayService()
     control_service = RobotControlService.RobotControlService()
     signal_service = RobotSignalService.RobotSignalService()
+    robot_control_service = RobotRequestControlService.RobotRequestControlService()
+    
+    command_to_robot_command = queue.Queue()
     
     await service.__aenter__(session_manager)
-    await control_service.__aenter__(session_manager)
+    await control_service.__aenter__(session_manager, command_to_robot_command)
     await signal_service.__aenter__(session_manager)
+    await robot_control_service.__aenter__(session_manager, command_to_robot_command)
     
     svr = server()
     pb_grpc.add_RobotApiGatewayServicer_to_server(service, svr) # heartbeat, login, status, pos
     control_pb_grpc.add_RobotControlServiceServicer_to_server(control_service, svr) # command(control)
     signaling_pb_grpc.add_RobotSignalServiceServicer_to_server(signal_service, svr) # signaling(screen)
+    rb_control_pb_grpc.add_RobotRequestControlServiceServicer_to_server(robot_control_service, svr)
+    
     svr.add_insecure_port("[::]:50051")
 
     await svr.start()

@@ -9,7 +9,7 @@ import app.services.conn_service as conn_service
 import asyncio
 from app.sessions.robot_session_manager import RobotSessionManager
 import grpc
-import app.generated.control_pb2_grpc as control_pb_grpc
+import app.generated.robot_request_control_pb2_grpc as rb_control_pb_grpc
 
 class RobotGatewayService(pb_grpc.RobotApiGatewayServicer):
     
@@ -70,7 +70,7 @@ class RobotGatewayService(pb_grpc.RobotApiGatewayServicer):
             
             if not session.control_channel:
                 channel = grpc.aio.insecure_channel(robot_addr)
-                stub = control_pb_grpc.RobotControlServiceStub(channel)
+                stub = rb_control_pb_grpc.RobotRequestControlServiceStub(channel)
 
                 session.control_channel = channel
                 session.control_stub = stub
@@ -79,7 +79,7 @@ class RobotGatewayService(pb_grpc.RobotApiGatewayServicer):
             if session.robot_addr != robot_addr:
                 await session.control_channel.close()
                 channel = grpc.aio.insecure_channel(robot_addr)
-                stub = control_pb_grpc.RobotControlServiceStub(channel)
+                stub = rb_control_pb_grpc.RobotRequestControlServiceStub(channel)
 
                 session.control_channel = channel
                 session.control_stub = stub
