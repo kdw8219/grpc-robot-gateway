@@ -9,3 +9,4 @@ app/server/__pycache__/*
 app/generated/__pycache__/*
 tests/__pycache__/*
 tests/grpc/__pycache__/*
+app/sessions/__pycache__/*

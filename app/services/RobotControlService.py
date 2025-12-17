@@ -3,11 +3,13 @@ import app.generated.control_pb2_grpc as control_pb_grpc
 from app.sessions.robot_session_manager import RobotSessionManager
 from app.sessions.robot_session import RobotState
 import grpc
+import queue
 
 class RobotControlService(control_pb_grpc.RobotControlServiceServicer):
     
-    async def __aenter__(self, session_manager:RobotSessionManager):
+    async def __aenter__(self, session_manager:RobotSessionManager, queue:queue.Queue):
         self.session_manager = session_manager
+        self.queue = queue
         return self
         
     
@@ -28,16 +30,12 @@ class RobotControlService(control_pb_grpc.RobotControlServiceServicer):
                 success=False,
                 message="robot offline"
             )
-
-        if not session.control_stub:
-            return control_pb_grpc.CommandResponse(
-                success=False,
-                message="control channel not ready"
-            )
-            
+       
         try:
-            await session.control_stub.SendCommand(request)
-                
+            #using request and convert it to something else
+            data = request.SerializeToString()
+            self.queue.put(data)
+            
             return control_pb.CommandResponse(
                 success=True,
                 message = "robot request success"

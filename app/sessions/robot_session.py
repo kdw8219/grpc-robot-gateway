@@ -6,9 +6,9 @@ class RobotState(Enum):
     OFFLINE = "OFFLINE"
 
 class RobotSession:
-    def __init__(self, robot_id: str, control_stub = None):
+    def __init__(self, robot_id: str, robot_control_stub = None):
         self.robot_id = robot_id
-        self.control_stub = control_stub
+        self.robot_control_stub = robot_control_stub
 
         self.state = RobotState.CONNECTED
         self.created_at = time.time()
