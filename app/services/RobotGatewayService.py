@@ -10,10 +10,11 @@ import asyncio
 from app.sessions.robot_session_manager import RobotSessionManager
 import grpc
 import app.generated.robot_request_control_pb2_grpc as rb_control_pb_grpc
+import logging
 
 class RobotGatewayService(pb_grpc.RobotApiGatewayServicer):
     
-    async def __aenter__(self, session_manager:RobotSessionManager,  kafka_producer=None):
+    async def __aenter__(self, session_manager:RobotSessionManager, logger: logging.Logger,  kafka_producer=None):
         self.settings = get_settings()
         self.client = httpx.AsyncClient()
         self.kafka = kafka_producer or AIOKafkaProducer(
@@ -21,6 +22,7 @@ class RobotGatewayService(pb_grpc.RobotApiGatewayServicer):
             value_serializer=lambda m: json.dumps(m).encode('utf-8'),
         )
         self.session_manager = session_manager
+        self.logger = logger
         
         if isinstance(self.kafka, AIOKafkaProducer):   # 실제 producer일 때만 start
             await self.kafka.start()
@@ -51,11 +53,11 @@ class RobotGatewayService(pb_grpc.RobotApiGatewayServicer):
             login_response = await conn_service.login_service(self.client, data=json_data)
             login_response.raise_for_status()
             
-            print('login success')
+            self.logger.info('login success')
             peer = context.peer()
             addr = ""
             if peer.startswith("ipv4:"):
-                addr = peer.replace("ipv4:", "")
+                addr = peer.                    replace("ipv4:", "")
             elif peer.startswith("ipv6:"):
                 host, port = peer.replace("ipv6:", "").rsplit("]:", 1)
                 addr = f"{host}:{port}"
@@ -66,25 +68,7 @@ class RobotGatewayService(pb_grpc.RobotApiGatewayServicer):
             
             session = await self.session_manager.get_or_create(request.robot_id)
             
-            print('session creation')
-            
-            if not session.control_channel:
-                channel = grpc.aio.insecure_channel(robot_addr)
-                stub = rb_control_pb_grpc.RobotRequestControlServiceStub(channel)
-
-                session.control_channel = channel
-                session.control_stub = stub
-                session.robot_addr = robot_addr
-                
-            if session.robot_addr != robot_addr:
-                await session.control_channel.close()
-                channel = grpc.aio.insecure_channel(robot_addr)
-                stub = rb_control_pb_grpc.RobotRequestControlServiceStub(channel)
-
-                session.control_channel = channel
-                session.control_stub = stub
-                
-            print('session creation complete')
+            self.logger.info('session creation')
             
             return pb.LoginResponse(
                 success=True,
@@ -92,7 +76,7 @@ class RobotGatewayService(pb_grpc.RobotApiGatewayServicer):
                 refresh_token=login_response.json().get('refresh_token', ''),
             )
         except Exception as e:
-            print('Exception occurred...' + str(e))
+            self.logger.info('Exception occurred...' + str(e))
             return pb.LoginResponse(
                 success=False,
                 access_token="",
@@ -100,6 +84,10 @@ class RobotGatewayService(pb_grpc.RobotApiGatewayServicer):
             )
             
     async def Heartbeat(self, request, context):
+        if context.cancelled():
+            self.logger.warning("Heartbeat cancelled early")
+        if context.time_remaining() < 0:
+            self.logger.warning("Heartbeat deadline exceeded")
         try:
             json_data = {
                 'robot_id': request.robot_id,
@@ -111,7 +99,8 @@ class RobotGatewayService(pb_grpc.RobotApiGatewayServicer):
             )
             heartbeat_response.raise_for_status()
             
-            ok = await self.session_manager.update_heartbeat(request.robot_id)
+            self.logger.info("Heartbeat robot_id : " + request.robot_id)
+            ok = await self.session_manager.update_heartbeat(request.robot_id) # 이거 계속 false 나오는데?
             
             return pb.HeartbeatResponse(
                 success=ok,

@@ -14,6 +14,17 @@ import app.services.RobotRequestControlService as RobotRequestControlService
 from app.sessions.robot_session_manager import RobotSessionManager
 
 import queue
+import logging
+import sys
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] [%(name)s] %(message)s",
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+    ],
+)
+logger = logging.getLogger(__name__)
 
 async def start_session_watcher(manager: RobotSessionManager):
     try:
@@ -22,13 +33,13 @@ async def start_session_watcher(manager: RobotSessionManager):
             await asyncio.sleep(1.0)
     except asyncio.CancelledError:
         # shutdown 시 정리 작업
-        print("Session watcher cancelled")
+        logger.info("Session watcher cancelled")
         raise
 
 async def serve():
     print("Starting gRPC Robot API Gateway Server...")
     
-    session_manager = RobotSessionManager()
+    session_manager = RobotSessionManager(logger)
     async_controller = asyncio.create_task(start_session_watcher(session_manager))
     
     service = RobotGatewayService.RobotGatewayService()
@@ -38,10 +49,10 @@ async def serve():
     
     command_to_robot_command = queue.Queue()
     
-    await service.__aenter__(session_manager)
+    await service.__aenter__(session_manager, logger)
     await control_service.__aenter__(session_manager, command_to_robot_command)
     await signal_service.__aenter__(session_manager)
-    await robot_control_service.__aenter__(session_manager, command_to_robot_command)
+    await robot_control_service.__aenter__(session_manager, command_to_robot_command, logger)
     
     svr = server()
     pb_grpc.add_RobotApiGatewayServicer_to_server(service, svr) # heartbeat, login, status, pos
@@ -60,11 +71,12 @@ async def serve():
             # 테스트에서 서버 task를 cancel 할 때를 위한 처리
         await svr.stop(0)
     finally:
-        service.__aexit__(None, None, None)
-        control_service.__aexit__(None, None, None)
-        signal_service.__aexit__(None, None, None)
+        await service.__aexit__(None, None, None)
+        await control_service.__aexit__(None, None, None)
+        await signal_service.__aexit__(None, None, None)
+        await robot_control_service.__aexit__(None,None,None)
         async_controller.cancel()
-        await async_controller
+        
     print("gRPC Robot API Gateway Server stopped.")
 
 

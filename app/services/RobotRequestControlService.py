@@ -4,12 +4,14 @@ from app.sessions.robot_session_manager import RobotSessionManager
 from app.sessions.robot_session import RobotState
 import grpc
 import queue
+from logging import Logger
 
 class RobotRequestControlService(rb_control_pb_grpc.RobotRequestControlServiceServicer):
     
-    async def __aenter__(self, session_manager:RobotSessionManager, queue:queue.Queue):
+    async def __aenter__(self, session_manager:RobotSessionManager, queue:queue.Queue, logger:Logger):
         self.session_manager = session_manager
         self.queue = queue
+        self.logger = logger
         return self
         
     
@@ -23,18 +25,18 @@ class RobotRequestControlService(rb_control_pb_grpc.RobotRequestControlServiceSe
         #get data from RobotControlService
         
         if not session:
-            return rb_control_pb_grpc.CommandResponse(
+            return rb_control_pb_grpc.RobotCommandResponse(
                 success=False,
                 message="robot session not found"
             )
         if session.state != RobotState.CONNECTED:
-            return rb_control_pb_grpc.CommandResponse(
+            return rb_control_pb_grpc.RobotCommandResponse(
                 success=False,
                 message="robot offline"
             )
 
         try:
-            item = self.queue.get()
+            item = self.queue.get(timeout=0.1)
             
             payload_type = item.WhichOneof("payload")
             
@@ -63,15 +65,16 @@ class RobotRequestControlService(rb_control_pb_grpc.RobotRequestControlServiceSe
                 )
                 
             self.queue.task_done()  
-            return rb_control_pb_grpc.CommandResponse(
+            return rb_control_pb_grpc.RobotCommandResponse(
                 has_command = True,
                 command = item.command,
             )   
-            
+        except queue.Empty:
+            self.logger.debug('no data from queue')
         except grpc.aio.AioRpcError as e:
             await self.session_manager.mark_offline_and_cleanup(session, request.robot_id)
 
-            return rb_control_pb_grpc.CommandResponse(
+            return rb_control_pb_grpc.RobotCommandResponse(
                 success=False,
                 message=f"robot unreachable: {e.details()}"
             )    
