@@ -8,15 +8,11 @@ class RobotState(Enum):
 class RobotSession:
     def __init__(self, robot_id: str, robot_control_stub = None):
         self.robot_id = robot_id
-        self.robot_control_stub = robot_control_stub
-
+        
         self.state = RobotState.CONNECTED
         self.created_at = time.time()
         self.last_heartbeat = time.time()
         self.robot_addr:str = ""
-        
-         # control / signaling 용 핸들
-        self.control_channel = None      # SendCommand를 처리할 대상
         
         # robot 쪽도 bidnirectional stream 이 있어야 하고, gateway 쪽도 bidirectional stream이 있어야..
         # 근데 이게 최선인가?

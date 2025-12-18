@@ -2,13 +2,15 @@ import asyncio
 import time
 from app.sessions.robot_session import RobotSession
 from app.sessions.robot_session import RobotState
+from logging import Logger 
 
 HEARTBEAT_TIMEOUT = 20.0  # seconds
 
 class RobotSessionManager:
-    def __init__(self):
+    def __init__(self, logger:Logger):
         self._sessions: dict[str, RobotSession] = {}
         self._lock = asyncio.Lock()
+        self.logger = logger
 
     async def get_or_create(self, robot_id: str, control_stub = None) -> RobotSession:
         async with self._lock:
@@ -24,15 +26,15 @@ class RobotSessionManager:
             return self._sessions.get(robot_id)
 
     async def update_heartbeat(self, robot_id: str) -> bool:
+        self.logger.info('get lock in heartbeat')
         async with self._lock:
             session = self._sessions.get(robot_id)
             if not session:
+                self.logger.info('workhere?1')
                 return False
             
             if time.time() - session.last_heartbeat > HEARTBEAT_TIMEOUT:
-                await session.control_channel.close()
-                session.control_channel = None
-                session.control_stub = None
+                self.logger.info(f'workhere?2 :{str(time.time())}, {str(session.last_heartbeat)}, {str(HEARTBEAT_TIMEOUT)}')
                 return False
 
             session.touch()
@@ -42,6 +44,7 @@ class RobotSessionManager:
         async with self._lock:
             session = self._sessions.get(robot_id)
             if session:
+                self.logger.info(f'robot_id expired : {robot_id}')
                 session.mark_offline()
 
     async def sweep_expired(self):
@@ -53,6 +56,7 @@ class RobotSessionManager:
                     session.state == RobotState.CONNECTED
                     and now - session.last_heartbeat > HEARTBEAT_TIMEOUT
                 ):
+                    self.logger.info(f'robot_id expired!')
                     session.mark_offline()
                     expired.append(session)
                     # 여기서 event push 가능
@@ -66,14 +70,6 @@ class RobotSessionManager:
         #)
 
     async def cleanup_session(self, session: RobotSession):
-        if session.control_channel:
-            try:
-                await session.control_channel.close()
-            except Exception:
-                pass
-
-        session.control_channel = None
-        session.control_stub = None
         session.robot_addr = ""
 
         if session.robot_stream:
