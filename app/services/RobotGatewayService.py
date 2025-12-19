@@ -55,18 +55,25 @@ class RobotGatewayService(pb_grpc.RobotApiGatewayServicer):
             
             self.logger.info('login success')
             peer = context.peer()
-            addr = ""
+            host = ""
             if peer.startswith("ipv4:"):
-                addr = peer.                    replace("ipv4:", "")
+                # ipv4:ip:port -> ip
+                host = peer.replace("ipv4:", "").split(":", 1)[0]
             elif peer.startswith("ipv6:"):
-                host, port = peer.replace("ipv6:", "").rsplit("]:", 1)
-                addr = f"{host}:{port}"
+                # ipv6:[ip]:port -> ip
+                host_port = peer.replace("ipv6:", "")
+                if host_port.startswith("["):
+                    host = host_port.split("]:", 1)[0].lstrip("[")
+                else:
+                    host = host_port.rsplit(":", 1)[0]
             else:
                 raise RuntimeError(f"unsupported peer: {peer}")
 
-            robot_addr = addr
+            robot_addr = host
             
             session = await self.session_manager.get_or_create(request.robot_id)
+            
+            session.robot_addr = robot_addr
             
             self.logger.info('session creation')
             
@@ -172,4 +179,3 @@ class RobotGatewayService(pb_grpc.RobotApiGatewayServicer):
                 success=False,
                 result=''
             )
-
