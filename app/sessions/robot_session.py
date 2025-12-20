@@ -19,6 +19,7 @@ class RobotSession:
         self.robot_stream = None     # robot → api
         self.gateway_stream = None   # gateway → api
 
+        
     def touch(self):
         self.last_heartbeat = time.time()
 

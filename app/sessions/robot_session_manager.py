@@ -79,6 +79,7 @@ class RobotSessionManager:
                 pass
 
         session.robot_stream = None
+        session.gateway_stream = None
         
     async def mark_offline_and_cleanup(self, session: RobotSession, robot_id):
         await self.mark_offline(robot_id)

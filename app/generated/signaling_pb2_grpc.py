@@ -26,7 +26,10 @@ if _version_not_supported:
 
 
 class RobotSignalServiceStub(object):
-    """WebRTC Signaling between Robot and Server
+    """============================
+    Service
+    ============================ 
+
     """
 
     def __init__(self, channel):
@@ -43,7 +46,10 @@ class RobotSignalServiceStub(object):
 
 
 class RobotSignalServiceServicer(object):
-    """WebRTC Signaling between Robot and Server
+    """============================
+    Service
+    ============================ 
+
     """
 
     def OpenSignalStream(self, request_iterator, context):
@@ -69,7 +75,10 @@ def add_RobotSignalServiceServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class RobotSignalService(object):
-    """WebRTC Signaling between Robot and Server
+    """============================
+    Service
+    ============================ 
+
     """
 
     @staticmethod
