@@ -2,16 +2,24 @@ syntax = "proto3";
 
 package robot.signaling;
 
-// WebRTC Signaling between Robot and Server
+/* ============================
+ * Service
+ * ============================ */
+
 service RobotSignalService {
-  rpc OpenSignalStream(stream SignalMessage) returns (stream SignalMessage);
+  rpc OpenSignalStream(stream SignalMessage)
+      returns (stream SignalMessage);
 }
 
-// Single message exchanged over the stream
+/* ============================
+ * Top-level Signal
+ * ============================ */
+
 message SignalMessage {
   string robot_id = 1;
 
   oneof payload {
+    // ---- WebRTC / Realtime ----
     ScreenRequest screen_request = 2;
 
     RobotOffer robot_offer = 3;
@@ -21,8 +29,64 @@ message SignalMessage {
     IceCandidate client_ice = 6;
 
     WebrtcError webrtc_error = 7;
+
+    // ---- Control (Web → System) ----
+    ControlCommand control_command = 20;
   }
 }
+
+/* ============================
+ * Control Command (Web Intent Shape)
+ * ============================ */
+
+message ControlCommand {
+  CommandType command = 1;
+
+  oneof payload {
+    MovePayload move = 10;
+    SetSpeedPayload set_speed = 11;
+    PathFollowPayload path_follow = 12;
+    // STOP / EMERGENCY_STOP / DOCK → payload 없음
+  }
+}
+
+/* ============================
+ * Command Types
+ * ============================ */
+
+enum CommandType {
+  COMMAND_UNKNOWN = 0;
+
+  MOVE = 1;
+  STOP = 2;
+  EMERGENCY_STOP = 3;
+
+  SET_SPEED = 4;
+  DOCK = 5;
+
+  PATH_FOLLOW = 6;
+}
+
+/* ============================
+ * Control Payloads
+ * ============================ */
+
+message MovePayload {
+  string direction = 1;  // "forward", "backward", "left", "right"
+  double speed = 2;      // 기본값 1.0
+}
+
+message SetSpeedPayload {
+  double speed = 1;
+}
+
+message PathFollowPayload {
+  string path_id = 1;
+}
+
+/* ============================
+ * WebRTC Signaling Messages
+ * ============================ */
 
 message ScreenRequest {
 }

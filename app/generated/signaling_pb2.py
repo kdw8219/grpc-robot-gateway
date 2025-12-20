@@ -24,25 +24,35 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0fsignaling.proto\x12\x0frobot.signaling\"\xf1\x02\n\rSignalMessage\x12\x10\n\x08robot_id\x18\x01 \x01(\t\x12\x38\n\x0escreen_request\x18\x02 \x01(\x0b\x32\x1e.robot.signaling.ScreenRequestH\x00\x12\x32\n\x0brobot_offer\x18\x03 \x01(\x0b\x32\x1b.robot.signaling.RobotOfferH\x00\x12\x32\n\trobot_ice\x18\x04 \x01(\x0b\x32\x1d.robot.signaling.IceCandidateH\x00\x12\x36\n\rclient_answer\x18\x05 \x01(\x0b\x32\x1d.robot.signaling.ClientAnswerH\x00\x12\x33\n\nclient_ice\x18\x06 \x01(\x0b\x32\x1d.robot.signaling.IceCandidateH\x00\x12\x34\n\x0cwebrtc_error\x18\x07 \x01(\x0b\x32\x1c.robot.signaling.WebrtcErrorH\x00\x42\t\n\x07payload\"\x0f\n\rScreenRequest\"\'\n\nRobotOffer\x12\x0b\n\x03sdp\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\")\n\x0c\x43lientAnswer\x12\x0b\n\x03sdp\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\"K\n\x0cIceCandidate\x12\x11\n\tcandidate\x18\x01 \x01(\t\x12\x0f\n\x07sdp_mid\x18\x02 \x01(\t\x12\x17\n\x0fsdp_mline_index\x18\x03 \x01(\x05\"\x1c\n\x0bWebrtcError\x12\r\n\x05\x65rror\x18\x01 \x01(\t2l\n\x12RobotSignalService\x12V\n\x10OpenSignalStream\x12\x1e.robot.signaling.SignalMessage\x1a\x1e.robot.signaling.SignalMessage(\x01\x30\x01\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0fsignaling.proto\x12\x0frobot.signaling\"\xad\x03\n\rSignalMessage\x12\x10\n\x08robot_id\x18\x01 \x01(\t\x12\x38\n\x0escreen_request\x18\x02 \x01(\x0b\x32\x1e.robot.signaling.ScreenRequestH\x00\x12\x32\n\x0brobot_offer\x18\x03 \x01(\x0b\x32\x1b.robot.signaling.RobotOfferH\x00\x12\x32\n\trobot_ice\x18\x04 \x01(\x0b\x32\x1d.robot.signaling.IceCandidateH\x00\x12\x36\n\rclient_answer\x18\x05 \x01(\x0b\x32\x1d.robot.signaling.ClientAnswerH\x00\x12\x33\n\nclient_ice\x18\x06 \x01(\x0b\x32\x1d.robot.signaling.IceCandidateH\x00\x12\x34\n\x0cwebrtc_error\x18\x07 \x01(\x0b\x32\x1c.robot.signaling.WebrtcErrorH\x00\x12:\n\x0f\x63ontrol_command\x18\x14 \x01(\x0b\x32\x1f.robot.signaling.ControlCommandH\x00\x42\t\n\x07payload\"\xea\x01\n\x0e\x43ontrolCommand\x12-\n\x07\x63ommand\x18\x01 \x01(\x0e\x32\x1c.robot.signaling.CommandType\x12,\n\x04move\x18\n \x01(\x0b\x32\x1c.robot.signaling.MovePayloadH\x00\x12\x35\n\tset_speed\x18\x0b \x01(\x0b\x32 .robot.signaling.SetSpeedPayloadH\x00\x12\x39\n\x0bpath_follow\x18\x0c \x01(\x0b\x32\".robot.signaling.PathFollowPayloadH\x00\x42\t\n\x07payload\"/\n\x0bMovePayload\x12\x11\n\tdirection\x18\x01 \x01(\t\x12\r\n\x05speed\x18\x02 \x01(\x01\" \n\x0fSetSpeedPayload\x12\r\n\x05speed\x18\x01 \x01(\x01\"$\n\x11PathFollowPayload\x12\x0f\n\x07path_id\x18\x01 \x01(\t\"\x0f\n\rScreenRequest\"\'\n\nRobotOffer\x12\x0b\n\x03sdp\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\")\n\x0c\x43lientAnswer\x12\x0b\n\x03sdp\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\"K\n\x0cIceCandidate\x12\x11\n\tcandidate\x18\x01 \x01(\t\x12\x0f\n\x07sdp_mid\x18\x02 \x01(\t\x12\x17\n\x0fsdp_mline_index\x18\x03 \x01(\x05\"\x1c\n\x0bWebrtcError\x12\r\n\x05\x65rror\x18\x01 \x01(\t*t\n\x0b\x43ommandType\x12\x13\n\x0f\x43OMMAND_UNKNOWN\x10\x00\x12\x08\n\x04MOVE\x10\x01\x12\x08\n\x04STOP\x10\x02\x12\x12\n\x0e\x45MERGENCY_STOP\x10\x03\x12\r\n\tSET_SPEED\x10\x04\x12\x08\n\x04\x44OCK\x10\x05\x12\x0f\n\x0bPATH_FOLLOW\x10\x06\x32l\n\x12RobotSignalService\x12V\n\x10OpenSignalStream\x12\x1e.robot.signaling.SignalMessage\x1a\x1e.robot.signaling.SignalMessage(\x01\x30\x01\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'signaling_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
+  _globals['_COMMANDTYPE']._serialized_start=1034
+  _globals['_COMMANDTYPE']._serialized_end=1150
   _globals['_SIGNALMESSAGE']._serialized_start=37
-  _globals['_SIGNALMESSAGE']._serialized_end=406
-  _globals['_SCREENREQUEST']._serialized_start=408
-  _globals['_SCREENREQUEST']._serialized_end=423
-  _globals['_ROBOTOFFER']._serialized_start=425
-  _globals['_ROBOTOFFER']._serialized_end=464
-  _globals['_CLIENTANSWER']._serialized_start=466
-  _globals['_CLIENTANSWER']._serialized_end=507
-  _globals['_ICECANDIDATE']._serialized_start=509
-  _globals['_ICECANDIDATE']._serialized_end=584
-  _globals['_WEBRTCERROR']._serialized_start=586
-  _globals['_WEBRTCERROR']._serialized_end=614
-  _globals['_ROBOTSIGNALSERVICE']._serialized_start=616
-  _globals['_ROBOTSIGNALSERVICE']._serialized_end=724
+  _globals['_SIGNALMESSAGE']._serialized_end=466
+  _globals['_CONTROLCOMMAND']._serialized_start=469
+  _globals['_CONTROLCOMMAND']._serialized_end=703
+  _globals['_MOVEPAYLOAD']._serialized_start=705
+  _globals['_MOVEPAYLOAD']._serialized_end=752
+  _globals['_SETSPEEDPAYLOAD']._serialized_start=754
+  _globals['_SETSPEEDPAYLOAD']._serialized_end=786
+  _globals['_PATHFOLLOWPAYLOAD']._serialized_start=788
+  _globals['_PATHFOLLOWPAYLOAD']._serialized_end=824
+  _globals['_SCREENREQUEST']._serialized_start=826
+  _globals['_SCREENREQUEST']._serialized_end=841
+  _globals['_ROBOTOFFER']._serialized_start=843
+  _globals['_ROBOTOFFER']._serialized_end=882
+  _globals['_CLIENTANSWER']._serialized_start=884
+  _globals['_CLIENTANSWER']._serialized_end=925
+  _globals['_ICECANDIDATE']._serialized_start=927
+  _globals['_ICECANDIDATE']._serialized_end=1002
+  _globals['_WEBRTCERROR']._serialized_start=1004
+  _globals['_WEBRTCERROR']._serialized_end=1032
+  _globals['_ROBOTSIGNALSERVICE']._serialized_start=1152
+  _globals['_ROBOTSIGNALSERVICE']._serialized_end=1260
 # @@protoc_insertion_point(module_scope)
