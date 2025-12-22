@@ -67,19 +67,18 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
         log.info("OpenSignalStream: gateway stream bound robot_id=%s peer=%s", robot_id, peer)
 
         async def consume():
-            # 첫 메시지 포함해서 모두 소비 (현재는 저장/변환 없이 드랍)
             log.debug("Signal A received first msg for robot_id=%s", robot_id)
-            async def iterate():
-                yield first
-                async for msg in request_iterator:
-                    yield msg
-
             try:
+                # 첫 메시지 포함 전체를 순회 (현재는 저장/변환 없이 드랍)
+                async def iterate():
+                    yield first
+                    async for msg in request_iterator:
+                        yield msg
+
                 async for msg in iterate():
                     log.debug("Signal A msg robot_id=%s payload_set=%s", robot_id, msg.WhichOneof("payload"))
             except grpc.RpcError as e:
-                # 스트림이 조기 종료되어도 noisy stack trace를 피함
-                log.warning("Signal A consume ended early robot_id=%s peer=%s: %s", robot_id, peer, e)
+                log.warning("Signal A consume ended robot_id=%s peer=%s: %s", robot_id, peer, e)
             except Exception as e:
                 log.warning("Signal A consume error robot_id=%s peer=%s: %r", robot_id, peer, e)
             finally:
@@ -89,23 +88,36 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
 
         async def response_stream():
             try:
+                # 즉시 1회 keepalive/ack 메시지를 내려 스트림을 연다.
+                yield signaling_pb.SignalMessage(robot_id=robot_id)
                 while True:
-                    # 클라이언트가 끊으면 context.cancelled()가 True가 된다.
                     if context.cancelled():
+                        log.info("Signal A response: context cancelled robot_id=%s peer=%s", robot_id, peer)
                         break
-                    # 30초마다 keepalive 식별용 빈 메시지를 내려 연결을 유지한다.
-                    await asyncio.sleep(30)
+                    await asyncio.sleep(10)
                     yield signaling_pb.SignalMessage(robot_id=robot_id)
             except asyncio.CancelledError:
+                log.info("Signal A response cancelled robot_id=%s peer=%s", robot_id, peer)
                 consume_task.cancel()
                 raise
             finally:
-                # consume task 종료를 정리
                 if not consume_task.done():
                     consume_task.cancel()
                 try:
                     await consume_task
                 except Exception:
                     pass
+                code = None
+                try:
+                    code = context.code()
+                except Exception:
+                    pass
+                log.info(
+                    "Signal A response finished robot_id=%s peer=%s cancelled=%s code=%s",
+                    robot_id,
+                    peer,
+                    context.cancelled(),
+                    code,
+                )
 
         return response_stream()
