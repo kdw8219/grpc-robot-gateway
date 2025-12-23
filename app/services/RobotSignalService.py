@@ -1,23 +1,24 @@
-import app.generated.signaling_pb2 as signaling_pb
-import app.generated.signaling_pb2_grpc as signaling_pb_grpc
-from app.sessions.robot_session_manager import RobotSessionManager
 import asyncio
 import logging
 import grpc
 
+import app.generated.signaling_pb2 as signaling_pb
+import app.generated.signaling_pb2_grpc as signaling_pb_grpc
+from app.sessions.robot_session_manager import RobotSessionManager
+from app.sessions.robot_session import RobotState
+
 log = logging.getLogger(__name__)
 
+
 class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
-    
-    async def __aenter__(self, session_manager:RobotSessionManager):
-        self.session_manager = session_manager    
+    async def __aenter__(self, session_manager: RobotSessionManager):
+        self.session_manager = session_manager
         return self
-        
-    
+
     async def __aexit__(self, exc_type, exc, tb):
         # Nothing to clean up right now; kept for symmetry.
         return
-        
+
     # 추후에 meta data 기반으로 구분할 수 있게 수정 필요
     # 현재는 robot에서 보내는 meta data에 데이터를 넣게 되어 있진 않다.
     def _peer_host(self, peer: str) -> str:
@@ -36,6 +37,20 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
         peer = context.peer()
         log.info("OpenSignalStream: peer=%s connected", peer)
 
+        def _on_done(_):
+            try:
+                log.warning(
+                    "OpenSignalStream done: peer=%s cancelled=%s code=%s details=%s",
+                    peer,
+                    context.cancelled(),
+                    _safe_context_code(context),
+                    _safe_context_details(context),
+                )
+            except Exception as e:
+                log.warning("OpenSignalStream done logging failed for peer=%s: %r", peer, e)
+
+        context.add_done_callback(_on_done)
+
         # 1. 첫 메시지에서 robot_id 판별 (최대 60초 대기, 5초마다 경고)
         first = None
         start = asyncio.get_event_loop().time()
@@ -48,7 +63,11 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
                 if elapsed >= 60.0:
                     log.warning("OpenSignalStream: no first message for 60s (peer=%s), closing", peer)
                     return
-                log.warning("OpenSignalStream: still waiting for first message (peer=%s, elapsed=%.1fs)", peer, elapsed)
+                log.warning(
+                    "OpenSignalStream: still waiting for first message (peer=%s, elapsed=%.1fs)",
+                    peer,
+                    elapsed,
+                )
                 continue
             except StopAsyncIteration:
                 # 클라이언트가 첫 메시지 없이 스트림을 닫은 경우
@@ -66,58 +85,125 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
         session.gateway_stream = context
         log.info("OpenSignalStream: gateway stream bound robot_id=%s peer=%s", robot_id, peer)
 
-        async def consume():
-            log.debug("Signal A received first msg for robot_id=%s", robot_id)
+        # 요청 스트림을 백그라운드에서 drain 하되, RPC가 끝나면 즉시 종료
+        async def drain_requests():
+            log.info("Signal A drain start robot_id=%s", robot_id)
             try:
-                # 첫 메시지 포함 전체를 순회 (현재는 저장/변환 없이 드랍)
                 async def iterate():
                     yield first
                     async for msg in request_iterator:
                         yield msg
 
                 async for msg in iterate():
-                    log.debug("Signal A msg robot_id=%s payload_set=%s", robot_id, msg.WhichOneof("payload"))
-            except grpc.RpcError as e:
-                log.warning("Signal A consume ended robot_id=%s peer=%s: %s", robot_id, peer, e)
-            except Exception as e:
-                log.warning("Signal A consume error robot_id=%s peer=%s: %r", robot_id, peer, e)
-            finally:
-                log.info("Signal A consume finished robot_id=%s peer=%s", robot_id, peer)
-
-        consume_task = asyncio.create_task(consume())
-
-        async def response_stream():
-            try:
-                # 즉시 1회 keepalive/ack 메시지를 내려 스트림을 연다.
-                yield signaling_pb.SignalMessage(robot_id=robot_id)
-                while True:
-                    if context.cancelled():
-                        log.info("Signal A response: context cancelled robot_id=%s peer=%s", robot_id, peer)
-                        break
-                    await asyncio.sleep(10)
-                    yield signaling_pb.SignalMessage(robot_id=robot_id)
-            except asyncio.CancelledError:
-                log.info("Signal A response cancelled robot_id=%s peer=%s", robot_id, peer)
-                consume_task.cancel()
-                raise
-            finally:
-                if not consume_task.done():
-                    consume_task.cancel()
-                try:
-                    await consume_task
-                except Exception:
-                    pass
-                code = None
-                try:
-                    code = context.code()
-                except Exception:
-                    pass
+                    log.info("Signal A msg robot_id=%s payload_set=%s", robot_id, msg.WhichOneof("payload"))
+            except StopAsyncIteration:
                 log.info(
-                    "Signal A response finished robot_id=%s peer=%s cancelled=%s code=%s",
+                    "Signal A drain iterator closed robot_id=%s peer=%s cancelled=%s code=%s",
                     robot_id,
                     peer,
                     context.cancelled(),
-                    code,
+                    _safe_context_code(context),
+                )
+            except grpc.RpcError as e:
+                log.warning(
+                    "Signal A drain ended robot_id=%s peer=%s: %s cancelled=%s code=%s",
+                    robot_id,
+                    peer,
+                    e,
+                    context.cancelled(),
+                    _safe_context_code(context),
+                )
+            except Exception as e:
+                log.warning(
+                    "Signal A drain error robot_id=%s peer=%s: %r cancelled=%s code=%s",
+                    robot_id,
+                    peer,
+                    e,
+                    context.cancelled(),
+                    _safe_context_code(context),
+                )
+            finally:
+                log.info(
+                    "Signal A drain finished robot_id=%s peer=%s cancelled=%s code=%s",
+                    robot_id,
+                    peer,
+                    context.cancelled(),
+                    _safe_context_code(context),
                 )
 
-        return response_stream()
+        drain_task = asyncio.create_task(drain_requests())
+
+        # 응답 스트림: 이 함수 자체를 async generator로 만들어 RPC를 붙잡는다.
+        try:
+            log.info("Signal A response: start robot_id=%s peer=%s", robot_id, peer)
+            # 즉시 1회 keepalive/ack 메시지를 내려 스트림을 연다.
+            log.info("Signal A response: first keepalive robot_id=%s peer=%s", robot_id, peer)
+            yield signaling_pb.SignalMessage(robot_id=robot_id)
+            while True:
+                if context.cancelled():
+                    log.info(
+                        "Signal A response: context cancelled robot_id=%s peer=%s code=%s",
+                        robot_id,
+                        peer,
+                        _safe_context_code(context),
+                    )
+                    break
+                if context.done():
+                    log.info(
+                        "Signal A response: context done robot_id=%s peer=%s code=%s",
+                        robot_id,
+                        peer,
+                        _safe_context_code(context),
+                    )
+                    break
+                if session.state != RobotState.CONNECTED:
+                    log.info(
+                        "Signal A response: session offline robot_id=%s peer=%s state=%s",
+                        robot_id,
+                        peer,
+                        session.state,
+                    )
+                    break
+                log.info("Signal A response: keepalive robot_id=%s peer=%s", robot_id, peer)
+                await asyncio.sleep(10)
+                yield signaling_pb.SignalMessage(robot_id=robot_id)
+        except asyncio.CancelledError:
+            log.info("Signal A response cancelled robot_id=%s peer=%s", robot_id, peer)
+            raise
+        except Exception as e:
+            log.warning(
+                "Signal A response error robot_id=%s peer=%s: %r cancelled=%s code=%s",
+                robot_id,
+                peer,
+                e,
+                context.cancelled(),
+                _safe_context_code(context),
+            )
+        finally:
+            if not drain_task.done():
+                drain_task.cancel()
+            try:
+                await drain_task
+            except Exception:
+                pass
+            log.info(
+                "Signal A response finished robot_id=%s peer=%s cancelled=%s code=%s",
+                robot_id,
+                peer,
+                context.cancelled(),
+                _safe_context_code(context),
+            )
+
+
+def _safe_context_code(context):
+    try:
+        return context.code()
+    except Exception:
+        return None
+
+
+def _safe_context_details(context):
+    try:
+        return context.details()
+    except Exception:
+        return None
