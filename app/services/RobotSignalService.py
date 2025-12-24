@@ -6,6 +6,7 @@ import app.generated.signaling_pb2 as signaling_pb
 import app.generated.signaling_pb2_grpc as signaling_pb_grpc
 from app.sessions.robot_session_manager import RobotSessionManager
 from app.sessions.robot_session import RobotState
+from google.protobuf.json_format import MessageToDict
 
 log = logging.getLogger(__name__)
 
@@ -99,9 +100,28 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
                     yield msg
 
             async for msg in iterate():
-                log.info("Signal A msg robot_id=%s payload_set=%s", robot_id, msg.WhichOneof("payload"))
+                command_type =msg.WhichOneof("payload")
+                log.info("Signal A msg robot_id=%s payload_set=%s", robot_id, command_type)
                 # after msg done, send it to robot session
                 # control / signal 이 2가지가 들어오게 되므로 이를 구분하도록 구현 필요
+                
+                if command_type == "control_command":
+                    data= self.control_to_minimal_dict(msg)
+                    if data is None:
+                        log.warning("Signal A drain: unknown control command robot_id=%s peer=%s", robot_id, peer)
+                        continue
+                    
+                    # send to robot session
+                    
+                else:
+                    data= self.signal_to_webrtc_dict(msg)
+                    if data is None:
+                        log.warning("Signal A drain: unknown signal command robot_id=%s peer=%s", robot_id, peer)
+                        continue
+                    
+                    # send to robot session
+                
+                
                     
         except StopAsyncIteration:
             log.info(
@@ -137,6 +157,37 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
                 context.cancelled(),
                 _safe_context_code(context),
             )        
+
+    def control_to_minimal_dict(self, msg):
+        if msg.WhichOneof("payload") != "control_command":
+            return None
+        cc = msg.control_command
+        payload_type = cc.WhichOneof("payload")  # "move" | "set_speed" | "path_follow" | None
+
+        payload = {
+            "robot_id": msg.robot_id,
+            "command": cc.command,  # enum number; 필요하면 Name(...)으로 문자열화
+        }
+        if payload_type:
+            payload[payload_type] = MessageToDict(
+                getattr(cc, payload_type),
+                preserving_proto_field_name=True,
+            )
+        return payload
+    
+    def signal_to_webrtc_dict(self, msg):
+        payload_type = msg.WhichOneof("payload")
+        if payload_type is None or payload_type == "control_command":
+            return None 
+
+        data = {"robot_id": msg.robot_id, "payload_type": payload_type}
+        data[payload_type] = MessageToDict(
+            getattr(msg, payload_type),
+            preserving_proto_field_name=True,
+        )
+        return data
+
+
 
 async def receiver(self, robot_id, session, peer, context, drain_task):
     # 응답 스트림: 이 함수 자체를 async generator로 만들어 RPC를 붙잡는다.
