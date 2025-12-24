@@ -85,55 +85,61 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
         session.gateway_stream = context
         log.info("OpenSignalStream: gateway stream bound robot_id=%s peer=%s", robot_id, peer)
 
-        # 요청 스트림을 백그라운드에서 drain 하되, RPC가 끝나면 즉시 종료
-        async def drain_requests():
-            log.info("Signal A drain start robot_id=%s", robot_id)
-            try:
-                async def iterate():
-                    yield first
-                    async for msg in request_iterator:
-                        yield msg
+        drain_task = asyncio.create_task(self.drain_requests(robot_id, request_iterator, peer, context, first))
 
-                async for msg in iterate():
-                    log.info("Signal A msg robot_id=%s payload_set=%s", robot_id, msg.WhichOneof("payload"))
-            except StopAsyncIteration:
-                log.info(
-                    "Signal A drain iterator closed robot_id=%s peer=%s cancelled=%s code=%s",
-                    robot_id,
-                    peer,
-                    context.cancelled(),
-                    _safe_context_code(context),
-                )
-            except grpc.RpcError as e:
-                log.warning(
-                    "Signal A drain ended robot_id=%s peer=%s: %s cancelled=%s code=%s",
-                    robot_id,
-                    peer,
-                    e,
-                    context.cancelled(),
-                    _safe_context_code(context),
-                )
-            except Exception as e:
-                log.warning(
-                    "Signal A drain error robot_id=%s peer=%s: %r cancelled=%s code=%s",
-                    robot_id,
-                    peer,
-                    e,
-                    context.cancelled(),
-                    _safe_context_code(context),
-                )
-            finally:
-                log.info(
-                    "Signal A drain finished robot_id=%s peer=%s cancelled=%s code=%s",
-                    robot_id,
-                    peer,
-                    context.cancelled(),
-                    _safe_context_code(context),
-                )
+        return self.receiver(robot_id, session, peer, context, drain_task)
 
-        drain_task = asyncio.create_task(drain_requests())
+    # 요청 스트림을 백그라운드에서 drain 하되, RPC가 끝나면 즉시 종료
+    async def drain_requests(self, robot_id, request_iterator, peer, context, first):
+        log.info("Signal A drain start robot_id=%s", robot_id)
+        try:
+            async def iterate():
+                yield first
+                async for msg in request_iterator:
+                    yield msg
 
-        # 응답 스트림: 이 함수 자체를 async generator로 만들어 RPC를 붙잡는다.
+            async for msg in iterate():
+                log.info("Signal A msg robot_id=%s payload_set=%s", robot_id, msg.WhichOneof("payload"))
+                # after msg done, send it to robot session
+                # control / signal 이 2가지가 들어오게 되므로 이를 구분하도록 구현 필요
+                    
+        except StopAsyncIteration:
+            log.info(
+                "Signal A drain iterator closed robot_id=%s peer=%s cancelled=%s code=%s",
+                robot_id,
+                peer,
+                context.cancelled(),
+                _safe_context_code(context),
+            )
+        except grpc.RpcError as e:
+            log.warning(
+                "Signal A drain ended robot_id=%s peer=%s: %s cancelled=%s code=%s",
+                robot_id,
+                peer,
+                e,
+                context.cancelled(),
+                _safe_context_code(context),
+            )
+        except Exception as e:
+            log.warning(
+                "Signal A drain error robot_id=%s peer=%s: %r cancelled=%s code=%s",
+                robot_id,
+                peer,
+                e,
+                context.cancelled(),
+                _safe_context_code(context),
+            )
+        finally:
+            log.info(
+                "Signal A drain finished robot_id=%s peer=%s cancelled=%s code=%s",
+                robot_id,
+                peer,
+                context.cancelled(),
+                _safe_context_code(context),
+            )        
+
+async def receiver(self, robot_id, session, peer, context, drain_task):
+    # 응답 스트림: 이 함수 자체를 async generator로 만들어 RPC를 붙잡는다.
         try:
             log.info("Signal A response: start robot_id=%s peer=%s", robot_id, peer)
             # 즉시 1회 keepalive/ack 메시지를 내려 스트림을 연다.
@@ -193,7 +199,6 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
                 context.cancelled(),
                 _safe_context_code(context),
             )
-
 
 def _safe_context_code(context):
     try:
