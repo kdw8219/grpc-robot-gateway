@@ -3,14 +3,15 @@ from grpc.aio import server
 import asyncio
 
 import app.generated.robot_api_gateway_pb2_grpc as pb_grpc
-import app.generated.control_pb2_grpc as control_pb_grpc
 import app.generated.signaling_pb2_grpc as signaling_pb_grpc
 import app.generated.robot_request_control_pb2_grpc as rb_control_pb_grpc
+import app.generated.robot_request_signal_pb2_grpc as rb_signal_pb_grpc
 
 import app.services.RobotGatewayService as RobotGatewayService
-import app.services.RobotControlService as RobotControlService
 import app.services.RobotSignalService as RobotSignalService
 import app.services.RobotRequestControlService as RobotRequestControlService
+import app.services.RobotRequestSignalService as RobotRequestSignalService
+
 from app.sessions.robot_session_manager import RobotSessionManager
 
 import queue
@@ -43,21 +44,22 @@ async def serve():
     async_controller = asyncio.create_task(start_session_watcher(session_manager))
     
     service = RobotGatewayService.RobotGatewayService()
-    control_service = RobotControlService.RobotControlService()
     signal_service = RobotSignalService.RobotSignalService()
     robot_control_service = RobotRequestControlService.RobotRequestControlService()
+    robot_signal_service = RobotRequestSignalService.RobotRequestSignalService()
     
     command_to_robot_command = queue.Queue()
     
     await service.__aenter__(session_manager, logger)
-    await control_service.__aenter__(session_manager, command_to_robot_command)
     await signal_service.__aenter__(session_manager)
     await robot_control_service.__aenter__(session_manager, command_to_robot_command, logger)
+    await robot_signal_service.__aenter__(session_manager, command_to_robot_command, logger)
     
     svr = server()
     pb_grpc.add_RobotApiGatewayServicer_to_server(service, svr) # heartbeat, login, status, pos
-    control_pb_grpc.add_RobotControlServiceServicer_to_server(control_service, svr) # command(control)
-    signaling_pb_grpc.add_RobotSignalServiceServicer_to_server(signal_service, svr) # signaling(screen)
+    signaling_pb_grpc.add_RobotSignalServiceServicer_to_server(signal_service, svr) # signaling(screen) from server
+    
+    rb_signal_pb_grpc.add_RobotSignalServiceServicer_to_server(robot_signal_service, svr)
     rb_control_pb_grpc.add_RobotRequestControlServiceServicer_to_server(robot_control_service, svr)
     
     svr.add_insecure_port("[::]:50051")
@@ -72,9 +74,9 @@ async def serve():
         await svr.stop(0)
     finally:
         await service.__aexit__(None, None, None)
-        await control_service.__aexit__(None, None, None)
         await signal_service.__aexit__(None, None, None)
         await robot_control_service.__aexit__(None,None,None)
+        await robot_signal_service.__aexit__(None,None,None)
         async_controller.cancel()
         
     print("gRPC Robot API Gateway Server stopped.")
