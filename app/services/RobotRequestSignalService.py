@@ -12,8 +12,10 @@ log = logging.getLogger(__name__)
 
 
 class RobotRequestSignalService(rb_signal_pb_grpc.RobotSignalServiceServicer):
-    async def __aenter__(self, session_manager: RobotSessionManager):
+    async def __aenter__(self, session_manager: RobotSessionManager, queue:queue.Queue, logger:logging.Logger):
         self.session_manager = session_manager
+        self.queue = queue
+        self.logger = logger
         return self
 
     async def __aexit__(self, exc_type, exc, tb):
