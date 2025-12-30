@@ -25,14 +25,12 @@ class RobotRequestControlService(rb_control_pb_grpc.RobotRequestControlServiceSe
         #get data from RobotControlService
         
         if not session:
-            return rb_control_pb_grpc.RobotCommandResponse(
-                success=False,
-                message="robot session not found"
+            return rb_control_pb.RobotCommandResponse(
+                has_command=False,
             )
         if session.state != RobotState.CONNECTED:
-            return rb_control_pb_grpc.RobotCommandResponse(
-                success=False,
-                message="robot offline"
+            return rb_control_pb.RobotCommandResponse(
+                has_command=False,
             )
 
         try:
@@ -65,17 +63,19 @@ class RobotRequestControlService(rb_control_pb_grpc.RobotRequestControlServiceSe
                 )
                 
             self.queue.task_done()  
-            return rb_control_pb_grpc.RobotCommandResponse(
+            return rb_control_pb.RobotCommandResponse(
                 has_command = True,
                 command = item.command,
             )   
         except queue.Empty:
             self.logger.debug('no data from queue')
+            return rb_control_pb.RobotCommandResponse(
+                has_command=False,
+            )
         except grpc.aio.AioRpcError as e:
             await self.session_manager.mark_offline_and_cleanup(session, request.robot_id)
 
-            return rb_control_pb_grpc.RobotCommandResponse(
-                success=False,
-                message=f"robot unreachable: {e.details()}"
+            return rb_control_pb.RobotCommandResponse(
+                has_command=False,
+                command = rb_control_pb.RobotCommand.Value("CMD_NONE"),
             )    
-
