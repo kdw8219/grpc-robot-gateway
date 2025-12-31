@@ -8,6 +8,7 @@ import json
 import app.services.conn_service as conn_service
 import asyncio
 from app.sessions.robot_session_manager import RobotSessionManager
+from app.sessions.robot_session import SessionChannel
 import grpc
 import app.generated.robot_request_control_pb2_grpc as rb_control_pb_grpc
 import logging
@@ -95,6 +96,7 @@ class RobotGatewayService(pb_grpc.RobotApiGatewayServicer):
             self.logger.warning("Heartbeat cancelled early")
         if context.time_remaining() < 0:
             self.logger.warning("Heartbeat deadline exceeded")
+        heartbeat_result = ''
         try:
             json_data = {
                 'robot_id': request.robot_id,
@@ -105,13 +107,14 @@ class RobotGatewayService(pb_grpc.RobotApiGatewayServicer):
                 self.client, self.kafka, json_data
             )
             heartbeat_response.raise_for_status()
+            heartbeat_result = heartbeat_response.json().get('result', '')
             
             self.logger.info("Heartbeat robot_id : " + request.robot_id)
-            ok = await self.session_manager.update_heartbeat(request.robot_id) # 이거 계속 false 나오는데?
+            ok = await self.session_manager.update_heartbeat(request.robot_id, SessionChannel.COMMAND) # Timer 처리 로직 개선 필요 --> 개선 완료
             
             return pb.HeartbeatResponse(
                 success=ok,
-                result=heartbeat_response.json().get('result', ''),
+                result=heartbeat_result,
             )
         except asyncio.CancelledError:
             raise  # 이건 gRPC에 그대로 CancelledError로 전달됨
@@ -119,7 +122,7 @@ class RobotGatewayService(pb_grpc.RobotApiGatewayServicer):
         except Exception as e:
             return pb.HeartbeatResponse(
                 success=False,
-                result=heartbeat_response.json().get('result', ''),
+                result=heartbeat_result,
             )
             
     async def Pos(self, request, context):

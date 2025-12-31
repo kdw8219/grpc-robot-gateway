@@ -1,7 +1,7 @@
 import app.generated.robot_request_signal_pb2 as rb_signal_pb
 import app.generated.robot_request_signal_pb2_grpc as rb_signal_pb_grpc
 from app.sessions.robot_session_manager import RobotSessionManager
-from app.sessions.robot_session import RobotState
+from app.sessions.robot_session import RobotState, SessionChannel
 import grpc
 import queue
 import logging
@@ -86,6 +86,8 @@ class RobotRequestSignalService(rb_signal_pb_grpc.RobotSignalServiceServicer):
 
         # Signal A (robot → 서버)만 처리. 일단 수신만 하고 응답은 없음.
         session.robot_stream = context
+        # 로봇 시그널 스트림 heartbeat를 초기화
+        await self.session_manager.update_heartbeat(robot_id, SessionChannel.ROBOT_SIGNAL)
         log.info("OpenSignalStream: robotr stream bound robot_id=%s peer=%s", robot_id, peer)
 
         drain_task = asyncio.create_task(self.drain_requests(robot_id, request_iterator, peer, context, first))
@@ -102,6 +104,8 @@ class RobotRequestSignalService(rb_signal_pb_grpc.RobotSignalServiceServicer):
                     yield msg
 
             async for msg in iterate(): #get request from robot. I can get message!
+                # 채널 heartbeat를 갱신해 세션을 유지한다.
+                await self.session_manager.update_heartbeat(robot_id, SessionChannel.ROBOT_SIGNAL)
                 #from message queue, get message and send it to robot
                 pass #TODO
                 
