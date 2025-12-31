@@ -1,7 +1,6 @@
 import asyncio
 import time
-from app.sessions.robot_session import RobotSession
-from app.sessions.robot_session import RobotState
+from app.sessions.robot_session import RobotSession, RobotState, SessionChannel
 from logging import Logger 
 
 HEARTBEAT_TIMEOUT = 20.0  # seconds
@@ -25,19 +24,22 @@ class RobotSessionManager:
         async with self._lock:
             return self._sessions.get(robot_id)
 
-    async def update_heartbeat(self, robot_id: str) -> bool:
-        self.logger.info('get lock in heartbeat')
+    async def update_heartbeat(self, robot_id: str, channel: SessionChannel) -> bool:
+        """Update a specific channel heartbeat. Returns False if the session is missing or already expired."""
         async with self._lock:
             session = self._sessions.get(robot_id)
             if not session:
-                self.logger.info('workhere?1')
-                return False
-            
-            if time.time() - session.last_heartbeat > HEARTBEAT_TIMEOUT:
-                self.logger.info(f'workhere?2 :{str(time.time())}, {str(session.last_heartbeat)}, {str(HEARTBEAT_TIMEOUT)}')
+                self.logger.info("heartbeat: missing session for %s", robot_id)
                 return False
 
-            session.touch()
+            now = time.time()
+            if session.is_channel_expired(channel, HEARTBEAT_TIMEOUT, now):
+                self.logger.info(
+                    "heartbeat expired before update robot_id=%s channel=%s", robot_id, channel.value
+                )
+                return False
+
+            session.touch(channel)
             return True
 
     async def mark_offline(self, robot_id: str):
@@ -51,16 +53,20 @@ class RobotSessionManager:
         now = time.time()
         expired = []
         async with self._lock:
-            for session in self._sessions.values():
-                if (
-                    session.state == RobotState.CONNECTED
-                    and now - session.last_heartbeat > HEARTBEAT_TIMEOUT
-                ):
-                    self.logger.info(f'robot_id expired!')
+            expired_ids = []
+            for robot_id, session in self._sessions.items():
+                if session.state != RobotState.CONNECTED:
+                    continue
+
+                if session.all_channels_expired(HEARTBEAT_TIMEOUT, now):
+                    self.logger.info('robot_id expired!')
                     session.mark_offline()
                     expired.append(session)
+                    expired_ids.append(robot_id)
                     # 여기서 event push 가능
-                    
+            for robot_id in expired_ids:
+                self._sessions.pop(robot_id, None)
+
         for session in expired:
             await self.cleanup_session(session)
         
