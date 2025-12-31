@@ -110,7 +110,7 @@ class RobotGatewayService(pb_grpc.RobotApiGatewayServicer):
             heartbeat_result = heartbeat_response.json().get('result', '')
             
             self.logger.info("Heartbeat robot_id : " + request.robot_id)
-            ok = await self.session_manager.update_heartbeat(request.robot_id, SessionChannel.COMMAND) # 이거 계속 false 나오는데?
+            ok = await self.session_manager.update_heartbeat(request.robot_id, SessionChannel.COMMAND) # Timer 처리 로직 개선 필요 --> 개선 완료
             
             return pb.HeartbeatResponse(
                 success=ok,
