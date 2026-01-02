@@ -17,6 +17,9 @@ from app.sessions.robot_session_manager import RobotSessionManager
 import queue
 import logging
 import sys
+import os
+
+os.environ.setdefault("GRPC_VERBOSITY", "DEBUG")
 
 logging.basicConfig(
     level=logging.INFO,
