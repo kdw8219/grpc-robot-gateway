@@ -4,7 +4,6 @@ from aiokafka import AIOKafkaProducer
 settings = get_settings()
 
 async def send_kafka_heartbeat(kafka:AIOKafkaProducer, topic:str, payload:dict):
-    print(f"start async...")
     try:
         result = await kafka.send_and_wait(topic, payload)
         print(f"Complete...: Topic={result.topic}, Partition={result.partition}, Offset={result.offset}")

@@ -10,7 +10,7 @@ from google.protobuf.json_format import MessageToDict
 
 log = logging.getLogger(__name__)
 
-
+"""This service is for signaling between robot and grpc-robot-gateway."""
 class RobotRequestSignalService(rb_signal_pb_grpc.RobotSignalServiceServicer):
     async def __aenter__(self, session_manager: RobotSessionManager, queue:queue.Queue, logger:logging.Logger):
         self.session_manager = session_manager
@@ -99,8 +99,14 @@ class RobotRequestSignalService(rb_signal_pb_grpc.RobotSignalServiceServicer):
         log.info("Signal A drain start robot_id=%s", robot_id)
         try:
             async def iterate():
+                log.info("start!")
                 yield first
+                log.info("second!")
+                
+                # 여기서부터 문제 생김. request_iterator에서 메시지를 async로 가져오게 해놨지만 이 때 UsageError('RPC already finished.') 발생
+                # RPC가 이미 끝나 있다는 건데, 이 의미는 서버가 아닌 클라이언트에서 끊었다는 뜻인데..
                 async for msg in request_iterator:
+                    log.info("continuous!")
                     yield msg
 
             async for msg in iterate(): #get request from robot. I can get message!
@@ -121,28 +127,31 @@ class RobotRequestSignalService(rb_signal_pb_grpc.RobotSignalServiceServicer):
             )
         except grpc.RpcError as e:
             log.warning(
-                "Signal A drain ended robot_id=%s peer=%s: %s cancelled=%s code=%s",
+                "Signal A drain ended robot_id=%s peer=%s: %s cancelled=%s done = %s code=%s",
                 robot_id,
                 peer,
                 e,
                 context.cancelled(),
+                context.done(),
                 _safe_context_code(context),
             )
         except Exception as e:
             log.warning(
-                "Signal A drain error robot_id=%s peer=%s: %r cancelled=%s code=%s",
+                "Signal A drain error robot_id=%s peer=%s: %r cancelled=%s done = %s code=%s",
                 robot_id,
                 peer,
                 e,
                 context.cancelled(),
+                context.done(),
                 _safe_context_code(context),
             )
         finally:
             log.info(
-                "Signal A drain finished robot_id=%s peer=%s cancelled=%s code=%s",
+                "Signal A drain finished robot_id=%s peer=%s cancelled=%s done = %s code=%s",
                 robot_id,
                 peer,
                 context.cancelled(),
+                context.done(),
                 _safe_context_code(context),
             )        
 
@@ -153,6 +162,7 @@ class RobotRequestSignalService(rb_signal_pb_grpc.RobotSignalServiceServicer):
                 # 즉시 1회 keepalive/ack 메시지를 내려 스트림을 연다.
                 log.info("Signal A response: first keepalive robot_id=%s peer=%s", robot_id, peer)
                 yield rb_signal_pb.SignalMessage(robot_id=robot_id)
+                log.info("overcome...?")
                 while True:
                     if context.cancelled():
                         log.info(
