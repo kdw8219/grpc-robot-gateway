@@ -1,6 +1,14 @@
 
-from grpc.aio import server
+import os
+import sys
+import logging
 import asyncio
+import queue
+
+# os.environ.setdefault("GRPC_VERBOSITY", "DEBUG")
+# os.environ.setdefault("GRPC_TRACE", "tcp,http,secure_endpoint,transport_security")
+
+from grpc.aio import server
 
 import app.generated.robot_api_gateway_pb2_grpc as pb_grpc
 import app.generated.signaling_pb2_grpc as signaling_pb_grpc
@@ -13,13 +21,6 @@ import app.services.RobotRequestControlService as RobotRequestControlService
 import app.services.RobotRequestSignalService as RobotRequestSignalService
 
 from app.sessions.robot_session_manager import RobotSessionManager
-
-import queue
-import logging
-import sys
-import os
-
-os.environ.setdefault("GRPC_VERBOSITY", "DEBUG")
 
 logging.basicConfig(
     level=logging.INFO,
