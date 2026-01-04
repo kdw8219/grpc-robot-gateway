@@ -92,7 +92,14 @@ class RobotRequestSignalService(rb_signal_pb_grpc.RobotSignalServiceServicer):
 
         drain_task = asyncio.create_task(self.drain_requests(robot_id, request_iterator, peer, context, first))
 
-        return self.receiver(robot_id, session, peer, context, drain_task)
+        try:
+            #return을 해버리면 RPC가 종료되어버림... 그래서 함부로 return을 하지 않는다.
+            async for out_msg in self.receiver(robot_id, session, peer, context, drain_task):
+                yield out_msg
+        
+        finally:
+            if not drain_task.done():
+                drain_task.cancel()
 
     # 요청 스트림을 백그라운드에서 drain 하되, RPC가 끝나면 즉시 종료
     async def drain_requests(self, robot_id, request_iterator, peer, context, first):
