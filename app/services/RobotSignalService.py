@@ -7,6 +7,7 @@ import app.generated.signaling_pb2_grpc as signaling_pb_grpc
 from app.sessions.robot_session_manager import RobotSessionManager
 from app.sessions.robot_session import RobotState
 from google.protobuf.json_format import MessageToDict
+from app.sessions.robot_session import RobotState, SessionChannel
 
 log = logging.getLogger(__name__)
 
@@ -88,7 +89,14 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
 
         drain_task = asyncio.create_task(self.drain_requests(robot_id, request_iterator, peer, context, first))
 
-        return self.receiver(robot_id, session, peer, context, drain_task)
+        try:
+            #return을 해버리면 RPC가 종료되어버림... 그래서 함부로 return을 하지 않는다.
+            async for out_msg in self.receiver(robot_id, session, peer, context, drain_task):
+                yield out_msg
+        
+        finally:
+            if not drain_task.done():
+                drain_task.cancel()
 
     # 요청 스트림을 백그라운드에서 drain 하되, RPC가 끝나면 즉시 종료
     async def drain_requests(self, robot_id, request_iterator, peer, context, first):
@@ -105,6 +113,8 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
                 # after msg done, send it to robot session
                 # control / signal 이 2가지가 들어오게 되므로 이를 구분하도록 구현 필요
                 
+                await self.session_manager.update_heartbeat(robot_id, SessionChannel.SERVER_SIGNAL)
+                
                 if command_type == "control_command":
                     data= self.control_to_minimal_dict(msg)
                     if data is None:
@@ -112,7 +122,10 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
                         continue
                     
                     # send to robot session
-                    
+                elif command_type is None:
+                    log.warning("Signal A drain: empty command robot_id=%s peer=%s", robot_id, peer)
+                    continue
+                
                 else:
                     data= self.signal_to_webrtc_dict(msg)
                     if data is None:
@@ -177,6 +190,9 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
     
     def signal_to_webrtc_dict(self, msg):
         payload_type = msg.WhichOneof("payload")
+        
+        log.info("signal message from server =%s", MessageToDict(msg, preserving_proto_field_name=True))
+        
         if payload_type is None or payload_type == "control_command":
             return None 
 
