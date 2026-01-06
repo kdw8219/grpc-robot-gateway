@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1arobot_request_signal.proto\x12\x17robot.request.signaling\"\xa1\x03\n\rSignalMessage\x12\x10\n\x08robot_id\x18\x01 \x01(\t\x12@\n\x0escreen_request\x18\x02 \x01(\x0b\x32&.robot.request.signaling.ScreenRequestH\x00\x12:\n\x0brobot_offer\x18\x03 \x01(\x0b\x32#.robot.request.signaling.RobotOfferH\x00\x12:\n\trobot_ice\x18\x04 \x01(\x0b\x32%.robot.request.signaling.IceCandidateH\x00\x12>\n\rclient_answer\x18\x05 \x01(\x0b\x32%.robot.request.signaling.ClientAnswerH\x00\x12;\n\nclient_ice\x18\x06 \x01(\x0b\x32%.robot.request.signaling.IceCandidateH\x00\x12<\n\x0cwebrtc_error\x18\x07 \x01(\x0b\x32$.robot.request.signaling.WebrtcErrorH\x00\x42\t\n\x07payload\"\x0f\n\rScreenRequest\"\'\n\nRobotOffer\x12\x0b\n\x03sdp\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\")\n\x0c\x43lientAnswer\x12\x0b\n\x03sdp\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\"K\n\x0cIceCandidate\x12\x11\n\tcandidate\x18\x01 \x01(\t\x12\x0f\n\x07sdp_mid\x18\x02 \x01(\t\x12\x17\n\x0fsdp_mline_index\x18\x03 \x01(\x05\"\x1c\n\x0bWebrtcError\x12\r\n\x05\x65rror\x18\x01 \x01(\t2|\n\x12RobotSignalService\x12\x66\n\x10OpenSignalStream\x12&.robot.request.signaling.SignalMessage\x1a&.robot.request.signaling.SignalMessage(\x01\x30\x01\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1arobot_request_signal.proto\x12\x17robot.request.signaling\"\xe0\x03\n\rSignalMessage\x12\x10\n\x08robot_id\x18\x01 \x01(\t\x12@\n\x0escreen_request\x18\x02 \x01(\x0b\x32&.robot.request.signaling.ScreenRequestH\x00\x12:\n\x0brobot_offer\x18\x03 \x01(\x0b\x32#.robot.request.signaling.RobotOfferH\x00\x12:\n\trobot_ice\x18\x04 \x01(\x0b\x32%.robot.request.signaling.IceCandidateH\x00\x12>\n\rclient_answer\x18\x05 \x01(\x0b\x32%.robot.request.signaling.ClientAnswerH\x00\x12;\n\nclient_ice\x18\x06 \x01(\x0b\x32%.robot.request.signaling.IceCandidateH\x00\x12<\n\x0cwebrtc_error\x18\x07 \x01(\x0b\x32$.robot.request.signaling.WebrtcErrorH\x00\x12=\n\x0fheartbeat_check\x18\x08 \x01(\x0b\x32\".robot.request.signaling.HeartbeatH\x00\x42\t\n\x07payload\"\x0f\n\rScreenRequest\"\'\n\nRobotOffer\x12\x0b\n\x03sdp\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\")\n\x0c\x43lientAnswer\x12\x0b\n\x03sdp\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\"K\n\x0cIceCandidate\x12\x11\n\tcandidate\x18\x01 \x01(\t\x12\x0f\n\x07sdp_mid\x18\x02 \x01(\t\x12\x17\n\x0fsdp_mline_index\x18\x03 \x01(\x05\"\x1c\n\x0bWebrtcError\x12\r\n\x05\x65rror\x18\x01 \x01(\t\"\x0b\n\tHeartbeat2|\n\x12RobotSignalService\x12\x66\n\x10OpenSignalStream\x12&.robot.request.signaling.SignalMessage\x1a&.robot.request.signaling.SignalMessage(\x01\x30\x01\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -32,17 +32,19 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'robot_request_signal_pb2', 
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
   _globals['_SIGNALMESSAGE']._serialized_start=56
-  _globals['_SIGNALMESSAGE']._serialized_end=473
-  _globals['_SCREENREQUEST']._serialized_start=475
-  _globals['_SCREENREQUEST']._serialized_end=490
-  _globals['_ROBOTOFFER']._serialized_start=492
-  _globals['_ROBOTOFFER']._serialized_end=531
-  _globals['_CLIENTANSWER']._serialized_start=533
-  _globals['_CLIENTANSWER']._serialized_end=574
-  _globals['_ICECANDIDATE']._serialized_start=576
-  _globals['_ICECANDIDATE']._serialized_end=651
-  _globals['_WEBRTCERROR']._serialized_start=653
-  _globals['_WEBRTCERROR']._serialized_end=681
-  _globals['_ROBOTSIGNALSERVICE']._serialized_start=683
-  _globals['_ROBOTSIGNALSERVICE']._serialized_end=807
+  _globals['_SIGNALMESSAGE']._serialized_end=536
+  _globals['_SCREENREQUEST']._serialized_start=538
+  _globals['_SCREENREQUEST']._serialized_end=553
+  _globals['_ROBOTOFFER']._serialized_start=555
+  _globals['_ROBOTOFFER']._serialized_end=594
+  _globals['_CLIENTANSWER']._serialized_start=596
+  _globals['_CLIENTANSWER']._serialized_end=637
+  _globals['_ICECANDIDATE']._serialized_start=639
+  _globals['_ICECANDIDATE']._serialized_end=714
+  _globals['_WEBRTCERROR']._serialized_start=716
+  _globals['_WEBRTCERROR']._serialized_end=744
+  _globals['_HEARTBEAT']._serialized_start=746
+  _globals['_HEARTBEAT']._serialized_end=757
+  _globals['_ROBOTSIGNALSERVICE']._serialized_start=759
+  _globals['_ROBOTSIGNALSERVICE']._serialized_end=883
 # @@protoc_insertion_point(module_scope)

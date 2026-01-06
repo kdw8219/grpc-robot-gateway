@@ -94,7 +94,7 @@ class RobotRequestSignalService(rb_signal_pb_grpc.RobotSignalServiceServicer):
 
         try:
             #return을 해버리면 RPC가 종료되어버림... 그래서 함부로 return을 하지 않는다.
-            async for out_msg in self.receiver(robot_id, session, peer, context, drain_task):
+            async for out_msg in self.sender(robot_id, session, peer, context, drain_task):
                 yield out_msg
         
         finally:
@@ -160,8 +160,8 @@ class RobotRequestSignalService(rb_signal_pb_grpc.RobotSignalServiceServicer):
                 _safe_context_code(context),
             )        
 
-    async def receiver(self, robot_id, session, peer, context, drain_task):
-        # 응답 스트림: 이 함수 자체를 async generator로 만들어 RPC를 붙잡는다.
+    async def sender(self, robot_id, session, peer, context, drain_task):
+        # 데이터 전달 목적
             try:
                 log.info("Signal A response: start robot_id=%s peer=%s", robot_id, peer)
                 # 즉시 1회 keepalive/ack 메시지를 내려 스트림을 연다.
@@ -195,6 +195,7 @@ class RobotRequestSignalService(rb_signal_pb_grpc.RobotSignalServiceServicer):
                         break
                     
                     log.info("Signal A response: keepalive robot_id=%s peer=%s", robot_id, peer)
+                    await asyncio.sleep(10)
                     
                     yield rb_signal_pb.SignalMessage(robot_id=robot_id)
             except asyncio.CancelledError:

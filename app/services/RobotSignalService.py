@@ -122,7 +122,7 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
                         continue
                     
                     # send to robot session
-                elif command_type is None:
+                elif command_type is None or command_type == "heartbeat_check":
                     log.warning("Signal A drain: empty command robot_id=%s peer=%s", robot_id, peer)
                     continue
                 
