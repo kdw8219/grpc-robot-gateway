@@ -21,6 +21,8 @@ message SignalMessage {
     IceCandidate client_ice = 6;
 
     WebrtcError webrtc_error = 7;
+
+    Heartbeat heartbeat_check = 8;
   }
 }
 
@@ -45,4 +47,8 @@ message IceCandidate {
 
 message WebrtcError {
   string error = 1;
+}
+
+message Heartbeat {
+  
 }

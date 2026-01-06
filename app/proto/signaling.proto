@@ -30,6 +30,8 @@ message SignalMessage {
 
     WebrtcError webrtc_error = 7;
 
+    Heartbeat heartbeat_check = 8;
+
     // ---- Control (Web → System) ----
     ControlCommand control_command = 20;
   }
@@ -109,4 +111,7 @@ message IceCandidate {
 
 message WebrtcError {
   string error = 1;
+}
+
+message Heartbeat {
 }
