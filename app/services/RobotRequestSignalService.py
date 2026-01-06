@@ -116,6 +116,7 @@ class RobotRequestSignalService(rb_signal_pb_grpc.RobotSignalServiceServicer):
 
             async for msg in iterate(): #get request from robot. I can get message!
                 # 채널 heartbeat를 갱신해 세션을 유지한다.
+                log.info("Heartbeat from robot received robot_id=%s peer=%s message=%s", robot_id, peer, MessageToDict(msg))
                 await self.session_manager.update_heartbeat(robot_id, SessionChannel.ROBOT_SIGNAL)
                 #from message queue, get message and send it to robot
                 pass #TODO
