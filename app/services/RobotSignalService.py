@@ -107,6 +107,8 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
                 async for msg in request_iterator:
                     yield msg
 
+            await self.session_manager.update_heartbeat(robot_id, SessionChannel.SERVER_SIGNAL)
+
             async for msg in iterate():
                 command_type =msg.WhichOneof("payload")
                 log.info("Signal A msg robot_id=%s payload_set=%s", robot_id, command_type)
