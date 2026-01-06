@@ -16,25 +16,12 @@ class RobotRequestSignalService(rb_signal_pb_grpc.RobotSignalServiceServicer):
         self.session_manager = session_manager
         self.queue = queue
         self.logger = logger
+        self.internal_timer = 0
         return self
 
     async def __aexit__(self, exc_type, exc, tb):
         # Nothing to clean up right now; kept for symmetry.
         return
-
-    # 추후에 meta data 기반으로 구분할 수 있게 수정 필요
-    # 현재는 robot에서 보내는 meta data에 데이터를 넣게 되어 있진 않다.
-    def _peer_host(self, peer: str) -> str:
-        if peer.startswith("ipv4:"):
-            # ipv4:ip:port -> ip
-            return peer.replace("ipv4:", "").split(":", 1)[0]
-        if peer.startswith("ipv6:"):
-            # ipv6:[ip]:port -> ip
-            host_port = peer.replace("ipv6:", "")
-            if host_port.startswith("["):
-                return host_port.split("]:", 1)[0].lstrip("[")
-            return host_port.rsplit(":", 1)[0]
-        return ""
 
     async def OpenSignalStream(self, request_iterator, context):
         peer = context.peer()
@@ -195,10 +182,21 @@ class RobotRequestSignalService(rb_signal_pb_grpc.RobotSignalServiceServicer):
                         )
                         break
                     
-                    log.info("Signal A response: keepalive robot_id=%s peer=%s", robot_id, peer)
-                    await asyncio.sleep(10)
+                    try:
+                        self.queue.get(timeout=0.1)
+                        self.internal_timer += 0.1
+                        #do something
+                        
+                        self.queue.task_done()
+                    except queue.Empty:
+                        self.internal_timer += 0.1
                     
-                    yield rb_signal_pb.SignalMessage(robot_id=robot_id)
+                    if self.internal_timer >= 10:
+                        log.info("Signal A response: keepalive robot_id=%s peer=%s", robot_id, peer)
+                        yield rb_signal_pb.SignalMessage(robot_id=robot_id)
+                        self.internal_timer = 0    
+                    
+                    continue
             except asyncio.CancelledError:
                 log.info("Signal A response cancelled robot_id=%s peer=%s", robot_id, peer)
                 raise

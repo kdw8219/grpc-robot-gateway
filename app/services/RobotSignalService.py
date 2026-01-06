@@ -8,32 +8,21 @@ from app.sessions.robot_session_manager import RobotSessionManager
 from app.sessions.robot_session import RobotState
 from google.protobuf.json_format import MessageToDict
 from app.sessions.robot_session import RobotState, SessionChannel
+from queue import Queue
 
 log = logging.getLogger(__name__)
 
 '''This service is for signaling between robot gateway and robot server.'''
 class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
-    async def __aenter__(self, session_manager: RobotSessionManager):
+    async def __aenter__(self, session_manager: RobotSessionManager, control_queue:Queue, signal_queue:Queue):
         self.session_manager = session_manager
+        self.control_queue = control_queue
+        self.signal_queue = signal_queue
         return self
 
     async def __aexit__(self, exc_type, exc, tb):
         # Nothing to clean up right now; kept for symmetry.
         return
-
-    # 추후에 meta data 기반으로 구분할 수 있게 수정 필요
-    # 현재는 robot에서 보내는 meta data에 데이터를 넣게 되어 있진 않다.
-    def _peer_host(self, peer: str) -> str:
-        if peer.startswith("ipv4:"):
-            # ipv4:ip:port -> ip
-            return peer.replace("ipv4:", "").split(":", 1)[0]
-        if peer.startswith("ipv6:"):
-            # ipv6:[ip]:port -> ip
-            host_port = peer.replace("ipv6:", "")
-            if host_port.startswith("["):
-                return host_port.split("]:", 1)[0].lstrip("[")
-            return host_port.rsplit(":", 1)[0]
-        return ""
 
     async def OpenSignalStream(self, request_iterator, context):
         peer = context.peer()
@@ -91,7 +80,7 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
 
         try:
             #return을 해버리면 RPC가 종료되어버림... 그래서 함부로 return을 하지 않는다.
-            async for out_msg in self.receiver(robot_id, session, peer, context, drain_task):
+            async for out_msg in self.sender(robot_id, session, peer, context, drain_task):
                 yield out_msg
         
         finally:
@@ -122,7 +111,9 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
                     if data is None:
                         log.warning("Signal A drain: unknown control command robot_id=%s peer=%s", robot_id, peer)
                         continue
-                    
+                    self.control_queue.put(data)
+                    log.info("Receive Request and set it to control queue: robot_id=%s peer=%s data=% s", robot_id, peer, data)                
+                   
                     # send to robot session
                 elif command_type is None or command_type == "heartbeat_check":
                     log.warning("Signal A drain: empty command robot_id=%s peer=%s", robot_id, peer)
@@ -133,9 +124,8 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
                     if data is None:
                         log.warning("Signal A drain: unknown signal command robot_id=%s peer=%s", robot_id, peer)
                         continue
-                    
-                    # send to robot session
-                
+                    self.signal_queue.put(data)
+                    log.info("Receive Request and set it to signal queue: robot_id=%s peer=%s data=% s", robot_id, peer, data)
                 
                     
         except StopAsyncIteration:
@@ -205,7 +195,8 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
         )
         return data
 
-    async def receiver(self, robot_id, session, peer, context, drain_task):
+#just for heartbeating
+    async def sender(self, robot_id, session, peer, context, drain_task):
         # 응답 스트림: 이 함수 자체를 async generator로 만들어 RPC를 붙잡는다.
             try:
                 log.info("Signal A response: start robot_id=%s peer=%s", robot_id, peer)
