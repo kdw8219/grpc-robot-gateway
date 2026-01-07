@@ -56,7 +56,7 @@ async def serve():
     signal_to_robot_command = queue.Queue()
     
     await service.__aenter__(session_manager, logger)
-    await signal_service.__aenter__(session_manager)
+    await signal_service.__aenter__(session_manager, command_to_robot_command, signal_to_robot_command)
     await robot_control_service.__aenter__(session_manager, command_to_robot_command, logger)
     await robot_signal_service.__aenter__(session_manager, signal_to_robot_command, logger)
     
