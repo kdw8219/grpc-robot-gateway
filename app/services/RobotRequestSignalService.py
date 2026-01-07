@@ -182,14 +182,22 @@ class RobotRequestSignalService(rb_signal_pb_grpc.RobotSignalServiceServicer):
                         )
                         break
                     
+                    is_success = False
                     try:
-                        self.queue.get(timeout=0.1)
+                        item = self.queue.get(timeout=0.1)
+                        is_success = True
                         self.internal_timer += 0.1
                         #do something
                         
-                        self.queue.task_done()
+                        print("test" + item)
+                        
                     except queue.Empty:
                         self.internal_timer += 0.1
+                    finally:
+                        if is_success:
+                            self.queue.task_done()
+                            is_success = False
+
                     
                     if self.internal_timer >= 10:
                         log.info("Signal A response: keepalive robot_id=%s peer=%s", robot_id, peer)
