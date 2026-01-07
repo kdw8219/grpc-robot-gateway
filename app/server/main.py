@@ -54,11 +54,12 @@ async def serve():
     
     command_to_robot_command = queue.Queue()
     signal_to_robot_command = queue.Queue()
+    response_queue = asyncio.Queue()
     
     await service.__aenter__(session_manager, logger)
-    await signal_service.__aenter__(session_manager, command_to_robot_command, signal_to_robot_command)
-    await robot_control_service.__aenter__(session_manager, command_to_robot_command, logger)
-    await robot_signal_service.__aenter__(session_manager, signal_to_robot_command, logger)
+    await signal_service.__aenter__(session_manager, command_to_robot_command, signal_to_robot_command, response_queue)
+    await robot_control_service.__aenter__(session_manager, command_to_robot_command, response_queue, logger)
+    await robot_signal_service.__aenter__(session_manager, signal_to_robot_command, response_queue, logger)
     
     svr = server()
     pb_grpc.add_RobotApiGatewayServicer_to_server(service, svr) # heartbeat, login, status, pos

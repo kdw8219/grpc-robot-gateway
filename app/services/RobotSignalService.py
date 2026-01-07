@@ -15,11 +15,11 @@ log = logging.getLogger(__name__)
 
 '''This service is for signaling between robot gateway and robot server.'''
 class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
-    async def __aenter__(self, session_manager: RobotSessionManager, control_queue:Queue, signal_queue:Queue):
+    async def __aenter__(self, session_manager: RobotSessionManager, control_queue:Queue, signal_queue:Queue, async_resp_queue:AsyncQueue):
         self.session_manager = session_manager
         self.control_queue = control_queue
         self.signal_queue = signal_queue
-        self.response_queue = AsyncQueue()
+        self.response_queue = async_resp_queue
         self.internal_timer = 0
         return self
 
@@ -128,8 +128,6 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
                         log.warning("Signal A drain: unknown signal command robot_id=%s peer=%s", robot_id, peer)
                         continue
                     
-                    session = await self.session_manager.get(robot_id) #session none
-                    
                     if not await self.session_manager.is_session_alive(robot_id, SessionChannel.ROBOT_SIGNAL): #No robot session...
                         log.warning("robot is not working right now... id : %s peer=%s", robot_id, peer)
                         
@@ -216,12 +214,82 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
         return data
 
     async def process_response_queue(self, item):
-        
-        if item["payload_type"] == "error_message":
+        payload_type = item.get("payload_type")
+        if payload_type == "error_message":
             log.info("Error message received: %s", item)
-            return signaling_pb.SignalMessage(robot_id=item["robot_id"], webrtc_error=signaling_pb.WebrtcError(error=item["error_message"]["error_description"]))
+            return signaling_pb.SignalMessage(
+                robot_id=item["robot_id"],
+                webrtc_error=signaling_pb.WebrtcError(
+                    error=item["error_message"]["error_description"],
+                ),
+            )
 
-        pass
+        msg = None
+        if payload_type == "screen_request":
+            msg = signaling_pb.SignalMessage(
+                robot_id=item["robot_id"],
+                screen_request=signaling_pb.ScreenRequest(),
+            )
+        elif payload_type == "robot_offer":
+            offer = item["robot_offer"]
+            msg = signaling_pb.SignalMessage(
+                robot_id=item["robot_id"],
+                robot_offer=signaling_pb.RobotOffer(
+                    sdp=offer.get("sdp", ""),
+                    type=offer.get("type", ""),
+                ),
+            )
+        elif payload_type == "robot_ice":
+            ice = item["robot_ice"]
+            msg = signaling_pb.SignalMessage(
+                robot_id=item["robot_id"],
+                robot_ice=signaling_pb.IceCandidate(
+                    candidate=ice.get("candidate", ""),
+                    sdp_mid=ice.get("sdp_mid", ""),
+                    sdp_mline_index=ice.get("sdp_mline_index", 0),
+                ),
+            )
+        elif payload_type == "client_answer":
+            answer = item["client_answer"]
+            msg = signaling_pb.SignalMessage(
+                robot_id=item["robot_id"],
+                client_answer=signaling_pb.ClientAnswer(
+                    sdp=answer.get("sdp", ""),
+                    type=answer.get("type", ""),
+                ),
+            )
+        elif payload_type == "client_ice":
+            ice = item["client_ice"]
+            msg = signaling_pb.SignalMessage(
+                robot_id=item["robot_id"],
+                client_ice=signaling_pb.IceCandidate(
+                    candidate=ice.get("candidate", ""),
+                    sdp_mid=ice.get("sdp_mid", ""),
+                    sdp_mline_index=ice.get("sdp_mline_index", 0),
+                ),
+            )
+        elif payload_type == "webrtc_error":
+            err = item["webrtc_error"]
+            msg = signaling_pb.SignalMessage(
+                robot_id=item["robot_id"],
+                webrtc_error=signaling_pb.WebrtcError(
+                    error=err.get("error", ""),
+                ),
+            )
+        elif payload_type == "heartbeat_check":
+            msg = signaling_pb.SignalMessage(
+                robot_id=item["robot_id"],
+                heartbeat_check=signaling_pb.Heartbeat(),
+            )
+
+        if msg is None:
+            log.warning(
+                "Signal A response: unknown payload_type robot_id=%s payload_type=%s item=%s",
+                item.get("robot_id"),
+                payload_type,
+                item,
+            )
+        return msg
 #just for heartbeating
     async def sender(self, robot_id, session, peer, context, drain_task):
         # 응답 스트림: 이 함수 자체를 async generator로 만들어 RPC를 붙잡는다.
@@ -263,7 +331,9 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
                         is_success = True
                         self.internal_timer += 0.1
                         
-                        yield await self.process_response_queue(item)
+                        msg = await self.process_response_queue(item)
+                        if msg is not None:
+                            yield msg
                         
                     except asyncio.QueueEmpty:
                         self.internal_timer += 0.1

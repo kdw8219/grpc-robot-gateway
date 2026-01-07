@@ -5,12 +5,14 @@ from app.sessions.robot_session import RobotState
 import grpc
 import queue
 from logging import Logger
+import asyncio
 
 class RobotRequestControlService(rb_control_pb_grpc.RobotRequestControlServiceServicer):
     
-    async def __aenter__(self, session_manager:RobotSessionManager, queue:queue.Queue, logger:Logger):
+    async def __aenter__(self, session_manager:RobotSessionManager, queue:queue.Queue, async_resp_queue:asyncio.Queue, logger:Logger):
         self.session_manager = session_manager
         self.queue = queue
+        self.async_resp_queue = async_resp_queue
         self.logger = logger
         return self
         
