@@ -12,9 +12,10 @@ log = logging.getLogger(__name__)
 
 """This service is for signaling between robot and grpc-robot-gateway."""
 class RobotRequestSignalService(rb_signal_pb_grpc.RobotSignalServiceServicer):
-    async def __aenter__(self, session_manager: RobotSessionManager, queue:queue.Queue, logger:logging.Logger):
+    async def __aenter__(self, session_manager: RobotSessionManager, queue:queue.Queue, async_resp_queue:asyncio.Queue, logger:logging.Logger):
         self.session_manager = session_manager
         self.queue = queue
+        self.async_resp_queue = async_resp_queue
         self.logger = logger
         self.internal_timer = 0
         return self
@@ -100,15 +101,25 @@ class RobotRequestSignalService(rb_signal_pb_grpc.RobotSignalServiceServicer):
                 async for msg in request_iterator:
                     
                     yield msg
-
+            
             async for msg in iterate(): #get request from robot. I can get message!
                 # 채널 heartbeat를 갱신해 세션을 유지한다.
                 log.info("Heartbeat from robot received robot_id=%s peer=%s message=%s", robot_id, peer, MessageToDict(msg))
                 await self.session_manager.update_heartbeat(robot_id, SessionChannel.ROBOT_SIGNAL)
                 #from message queue, get message and send it to robot
-                pass #TODO
                 
-                
+                payload_type = msg.WhichOneof("payload")
+                if not payload_type:
+                    continue
+                payload = {
+                    "robot_id": msg.robot_id,
+                    "payload_type": payload_type,
+                }
+                payload[payload_type] = MessageToDict(
+                    getattr(msg, payload_type),
+                    preserving_proto_field_name=True,
+                )
+                self.async_resp_queue.put_nowait(payload)
                     
         except StopAsyncIteration:
             log.info(
@@ -187,9 +198,9 @@ class RobotRequestSignalService(rb_signal_pb_grpc.RobotSignalServiceServicer):
                         item = self.queue.get(timeout=0.1)
                         is_success = True
                         self.internal_timer += 0.1
-                        #do something
-                        
-                        print("test" + item)
+                        msg = self._build_signal_message(item, robot_id)
+                        if msg is not None:
+                            yield msg
                         
                     except queue.Empty:
                         self.internal_timer += 0.1
@@ -231,6 +242,81 @@ class RobotRequestSignalService(rb_signal_pb_grpc.RobotSignalServiceServicer):
                     context.cancelled(),
                     _safe_context_code(context),
                 )
+
+    def _build_signal_message(self, item, fallback_robot_id):
+        payload_type = item.get("payload_type")
+        if not payload_type:
+            log.warning("Signal A response: missing payload_type robot_id=%s item=%s", fallback_robot_id, item)
+            return None
+
+        robot_id = item.get("robot_id", fallback_robot_id)
+        msg = None
+        if payload_type == "screen_request":
+            msg = rb_signal_pb.SignalMessage(
+                robot_id=robot_id,
+                screen_request=rb_signal_pb.ScreenRequest(),
+            )
+        elif payload_type == "robot_offer":
+            offer = item["robot_offer"]
+            msg = rb_signal_pb.SignalMessage(
+                robot_id=robot_id,
+                robot_offer=rb_signal_pb.RobotOffer(
+                    sdp=offer.get("sdp", ""),
+                    type=offer.get("type", ""),
+                ),
+            )
+        elif payload_type == "robot_ice":
+            ice = item["robot_ice"]
+            msg = rb_signal_pb.SignalMessage(
+                robot_id=robot_id,
+                robot_ice=rb_signal_pb.IceCandidate(
+                    candidate=ice.get("candidate", ""),
+                    sdp_mid=ice.get("sdp_mid", ""),
+                    sdp_mline_index=ice.get("sdp_mline_index", 0),
+                ),
+            )
+        elif payload_type == "client_answer":
+            answer = item["client_answer"]
+            msg = rb_signal_pb.SignalMessage(
+                robot_id=robot_id,
+                client_answer=rb_signal_pb.ClientAnswer(
+                    sdp=answer.get("sdp", ""),
+                    type=answer.get("type", ""),
+                ),
+            )
+        elif payload_type == "client_ice":
+            ice = item["client_ice"]
+            msg = rb_signal_pb.SignalMessage(
+                robot_id=robot_id,
+                client_ice=rb_signal_pb.IceCandidate(
+                    candidate=ice.get("candidate", ""),
+                    sdp_mid=ice.get("sdp_mid", ""),
+                    sdp_mline_index=ice.get("sdp_mline_index", 0),
+                ),
+            )
+        elif payload_type == "webrtc_error":
+            err = item["webrtc_error"]
+            msg = rb_signal_pb.SignalMessage(
+                robot_id=robot_id,
+                webrtc_error=rb_signal_pb.WebrtcError(
+                    error=err.get("error", ""),
+                ),
+            )
+        elif payload_type == "heartbeat_check":
+            msg = rb_signal_pb.SignalMessage(
+                robot_id=robot_id,
+                heartbeat_check=rb_signal_pb.Heartbeat(),
+            )
+
+        if msg is None:
+            log.warning(
+                "Signal A response: unknown payload_type robot_id=%s payload_type=%s item=%s",
+                fallback_robot_id,
+                payload_type,
+                item,
+            )
+            return None
+        return msg
 
 def _safe_context_code(context):
     try:
