@@ -23,7 +23,7 @@ class RobotSessionManager:
     async def get(self, robot_id: str) -> RobotSession | None:
         async with self._lock:
             return self._sessions.get(robot_id)
-
+    
     async def update_heartbeat(self, robot_id: str, channel: SessionChannel) -> bool:
         """Update a specific channel heartbeat. Returns False if the session is missing or already expired."""
         async with self._lock:
@@ -90,3 +90,19 @@ class RobotSessionManager:
     async def mark_offline_and_cleanup(self, session: RobotSession, robot_id):
         await self.mark_offline(robot_id)
         await self.sweep_expired()
+
+        
+    async def is_session_alive(self, robot_id, channel: SessionChannel) -> bool:
+        async with self._lock:
+            session = self._sessions.get(robot_id)
+            if not session:
+                return False
+            
+            if session.robot_stream is None and channel == SessionChannel.ROBOT_SIGNAL:
+                return False
+            elif session.gateway_stream is None and channel == SessionChannel.SERVER_SIGNAL:
+                return False
+            elif session.command_stream is None and channel == SessionChannel.COMMAND:
+                return False
+            
+            return not session.is_channel_expired(channel, HEARTBEAT_TIMEOUT)

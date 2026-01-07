@@ -20,6 +20,7 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
         self.control_queue = control_queue
         self.signal_queue = signal_queue
         self.response_queue = AsyncQueue()
+        self.internal_timer = 0
         return self
 
     async def __aexit__(self, exc_type, exc, tb):
@@ -127,9 +128,20 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
                         log.warning("Signal A drain: unknown signal command robot_id=%s peer=%s", robot_id, peer)
                         continue
                     
-                    if self.session_manager.get(robot_id) is None:
+                    session = await self.session_manager.get(robot_id) #session none
+                    
+                    if not await self.session_manager.is_session_alive(robot_id, SessionChannel.ROBOT_SIGNAL): #No robot session...
                         log.warning("robot is not working right now... id : %s peer=%s", robot_id, peer)
-                        await self.response_queue.put()
+                        
+                        payload = {
+                            "robot_id": robot_id,
+                            "payload_type": "error_message",
+                            "error_message": {
+                                "error_code": 1,
+                                "error_description": "Robot is not connected right now."
+                            }
+                        }
+                        await self.response_queue.put(payload)
                         continue
                     
                     self.signal_queue.put(data)
@@ -203,6 +215,13 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
         )
         return data
 
+    async def process_response_queue(self, item):
+        
+        if item["payload_type"] == "error_message":
+            log.info("Error message received: %s", item)
+            return signaling_pb.SignalMessage(robot_id=item["robot_id"], webrtc_error=signaling_pb.WebrtcError(error=item["error_message"]["error_description"]))
+
+        pass
 #just for heartbeating
     async def sender(self, robot_id, session, peer, context, drain_task):
         # 응답 스트림: 이 함수 자체를 async generator로 만들어 RPC를 붙잡는다.
@@ -240,22 +259,23 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
                     
                     is_success = False
                     try:
-                        item = await asyncio.wait_for(self.response_queue.get(), timeout = 0.1)
+                        item = self.response_queue.get_nowait() #join 할 필요가 없으니까 tasK_done 안함
                         is_success = True
                         self.internal_timer += 0.1
-                        #do something
                         
-                        print("test" + item)
+                        yield await self.process_response_queue(item)
                         
-                    except asyncio.Queue.Empty:
+                    except asyncio.QueueEmpty:
                         self.internal_timer += 0.1
                     finally:
                         if is_success:
                             self.response_queue.task_done()
                             is_success = False
+                        else:
+                            await asyncio.sleep(0.1)
 
                     
-                    if self.internal_timer >= 10:
+                    if self.internal_timer >= 10.0:
                         log.info("Signal A response: keepalive robot_id=%s peer=%s", robot_id, peer)
                         yield signaling_pb.SignalMessage(robot_id=robot_id)
                         self.internal_timer = 0  
