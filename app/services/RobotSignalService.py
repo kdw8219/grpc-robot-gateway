@@ -9,6 +9,7 @@ from app.sessions.robot_session import RobotState
 from google.protobuf.json_format import MessageToDict
 from app.sessions.robot_session import RobotState, SessionChannel
 from queue import Queue
+from asyncio import Queue as AsyncQueue
 
 log = logging.getLogger(__name__)
 
@@ -18,6 +19,7 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
         self.session_manager = session_manager
         self.control_queue = control_queue
         self.signal_queue = signal_queue
+        self.response_queue = AsyncQueue()
         return self
 
     async def __aexit__(self, exc_type, exc, tb):
@@ -124,6 +126,12 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
                     if data is None:
                         log.warning("Signal A drain: unknown signal command robot_id=%s peer=%s", robot_id, peer)
                         continue
+                    
+                    if self.session_manager.get(robot_id) is None:
+                        log.warning("robot is not working right now... id : %s peer=%s", robot_id, peer)
+                        await self.response_queue.put()
+                        continue
+                    
                     self.signal_queue.put(data)
                     log.info("Receive Request and set it to signal queue: robot_id=%s peer=%s data=% s", robot_id, peer, data)
                 
@@ -221,6 +229,7 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
                         )
                         break
                     if session.state != RobotState.CONNECTED:
+                        
                         log.info(
                             "Signal A response: session offline robot_id=%s peer=%s state=%s",
                             robot_id,
@@ -228,9 +237,30 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
                             session.state,
                         )
                         break
-                    log.info("Signal A response: keepalive robot_id=%s peer=%s", robot_id, peer)
-                    await asyncio.sleep(10)
-                    yield signaling_pb.SignalMessage(robot_id=robot_id)
+                    
+                    is_success = False
+                    try:
+                        item = await asyncio.wait_for(self.response_queue.get(), timeout = 0.1)
+                        is_success = True
+                        self.internal_timer += 0.1
+                        #do something
+                        
+                        print("test" + item)
+                        
+                    except asyncio.Queue.Empty:
+                        self.internal_timer += 0.1
+                    finally:
+                        if is_success:
+                            self.response_queue.task_done()
+                            is_success = False
+
+                    
+                    if self.internal_timer >= 10:
+                        log.info("Signal A response: keepalive robot_id=%s peer=%s", robot_id, peer)
+                        yield signaling_pb.SignalMessage(robot_id=robot_id)
+                        self.internal_timer = 0  
+                    
+                    continue
             except asyncio.CancelledError:
                 log.info("Signal A response cancelled robot_id=%s peer=%s", robot_id, peer)
                 raise
