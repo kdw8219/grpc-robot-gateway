@@ -8,14 +8,12 @@ from app.sessions.robot_session_manager import RobotSessionManager
 from app.sessions.robot_session import RobotState
 from google.protobuf.json_format import MessageToDict
 from app.sessions.robot_session import RobotState, SessionChannel
-from queue import Queue
-from asyncio import Queue as AsyncQueue
 
 log = logging.getLogger(__name__)
 
 '''This service is for signaling between robot gateway and robot server.'''
 class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
-    async def __aenter__(self, session_manager: RobotSessionManager, control_queue:Queue, signal_queue:Queue, async_resp_queue:AsyncQueue):
+    async def __aenter__(self, session_manager: RobotSessionManager, control_queue:asyncio.Queue, signal_queue:asyncio.Queue, async_resp_queue:asyncio.Queue):
         self.session_manager = session_manager
         self.control_queue = control_queue
         self.signal_queue = signal_queue
@@ -114,7 +112,7 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
                     if data is None:
                         log.warning("Signal A drain: unknown control command robot_id=%s peer=%s", robot_id, peer)
                         continue
-                    self.control_queue.put(data)
+                    await self.control_queue.put(data)
                     log.info("Receive Request and set it to control queue: robot_id=%s peer=%s data=% s", robot_id, peer, data)                
                    
                     # send to robot session
@@ -142,7 +140,7 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
                         await self.response_queue.put(payload)
                         continue
                     
-                    self.signal_queue.put(data)
+                    await self.signal_queue.put(data)
                     log.info("Receive Request and set it to signal queue: robot_id=%s peer=%s data=% s", robot_id, peer, data)
                 
                     
@@ -325,24 +323,16 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
                         )
                         break
                     
-                    is_success = False
                     try:
-                        item = self.response_queue.get_nowait() #join 할 필요가 없으니까 tasK_done 안함
-                        is_success = True
+                        item = await asyncio.wait_for(self.response_queue.get(), timeout=0.1)
                         self.internal_timer += 0.1
-                        
+
                         msg = await self.process_response_queue(item)
                         if msg is not None:
                             yield msg
-                        
-                    except asyncio.QueueEmpty:
+
+                    except asyncio.TimeoutError:
                         self.internal_timer += 0.1
-                    finally:
-                        if is_success:
-                            self.response_queue.task_done()
-                            is_success = False
-                        else:
-                            await asyncio.sleep(0.1)
 
                     
                     if self.internal_timer >= 10.0:
