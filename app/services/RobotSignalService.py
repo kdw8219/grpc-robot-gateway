@@ -323,13 +323,9 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
                         )
                         break
                     
-                    is_success = False
                     try:
                         item = await asyncio.wait_for(self.response_queue.get(), timeout=0.1)
-                        is_success = True
                         self.internal_timer += 0.1
-
-                        log.info("Response to Server!")
 
                         msg = await self.process_response_queue(item)
                         if msg is not None:
@@ -337,10 +333,6 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
 
                     except asyncio.TimeoutError:
                         self.internal_timer += 0.1
-                    finally:
-                        if is_success:
-                            self.response_queue.task_done()
-                            is_success = False
 
                     
                     if self.internal_timer >= 10.0:

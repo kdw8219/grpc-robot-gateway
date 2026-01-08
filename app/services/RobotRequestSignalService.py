@@ -194,10 +194,8 @@ class RobotRequestSignalService(rb_signal_pb_grpc.RobotSignalServiceServicer):
                         )
                         break
                     
-                    is_success = False
                     try:
                         item = await asyncio.wait_for(self.queue.get(), timeout=0.1)
-                        is_success = True
                         self.internal_timer += 0.1
                         msg = self._build_signal_message(item, robot_id)
                         if msg is not None:
@@ -205,10 +203,6 @@ class RobotRequestSignalService(rb_signal_pb_grpc.RobotSignalServiceServicer):
                         
                     except asyncio.TimeoutError:
                         self.internal_timer += 0.1
-                    finally:
-                        if is_success:
-                            self.queue.task_done()
-                            is_success = False
 
                     
                     if self.internal_timer >= 10:

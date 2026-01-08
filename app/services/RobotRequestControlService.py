@@ -40,7 +40,6 @@ class RobotRequestControlService(rb_control_pb_grpc.RobotRequestControlServiceSe
             payload_type = item.WhichOneof("payload")
             
             if payload_type == "move":
-                self.queue.task_done()  
                 return rb_control_pb.RobotCommandResponse(
                     has_command = True,
                     command = item.command,
@@ -48,7 +47,6 @@ class RobotRequestControlService(rb_control_pb_grpc.RobotRequestControlServiceSe
                 )
 
             elif payload_type == "set_speed":
-                self.queue.task_done()  
                 return rb_control_pb.RobotCommandResponse(
                     has_command = True,
                     command = item.command,
@@ -56,14 +54,12 @@ class RobotRequestControlService(rb_control_pb_grpc.RobotRequestControlServiceSe
                 )
 
             elif payload_type == "path_follow":
-                self.queue.task_done()  
                 return rb_control_pb.RobotCommandResponse(
                     has_command = True,
                     command = item.command,
                     path_follow = item.path_follow
                 )
                 
-            self.queue.task_done()  
             return rb_control_pb.RobotCommandResponse(
                 has_command = True,
                 command = item.command,
