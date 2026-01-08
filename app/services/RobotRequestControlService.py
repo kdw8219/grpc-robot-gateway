@@ -3,13 +3,12 @@ import app.generated.robot_request_control_pb2_grpc as rb_control_pb_grpc
 from app.sessions.robot_session_manager import RobotSessionManager
 from app.sessions.robot_session import RobotState
 import grpc
-import queue
 from logging import Logger
 import asyncio
 
 class RobotRequestControlService(rb_control_pb_grpc.RobotRequestControlServiceServicer):
     
-    async def __aenter__(self, session_manager:RobotSessionManager, queue:queue.Queue, async_resp_queue:asyncio.Queue, logger:Logger):
+    async def __aenter__(self, session_manager:RobotSessionManager, queue:asyncio.Queue, async_resp_queue:asyncio.Queue, logger:Logger):
         self.session_manager = session_manager
         self.queue = queue
         self.async_resp_queue = async_resp_queue
@@ -36,7 +35,7 @@ class RobotRequestControlService(rb_control_pb_grpc.RobotRequestControlServiceSe
             )
 
         try:
-            item = self.queue.get(timeout=0.1)
+            item = await asyncio.wait_for(self.queue.get(), timeout=0.1)
             
             payload_type = item.WhichOneof("payload")
             
@@ -69,7 +68,7 @@ class RobotRequestControlService(rb_control_pb_grpc.RobotRequestControlServiceSe
                 has_command = True,
                 command = item.command,
             )   
-        except queue.Empty:
+        except asyncio.TimeoutError:
             self.logger.debug('no data from queue')
             return rb_control_pb.RobotCommandResponse(
                 has_command=False,

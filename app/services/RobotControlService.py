@@ -3,11 +3,11 @@ import app.generated.control_pb2_grpc as control_pb_grpc
 from app.sessions.robot_session_manager import RobotSessionManager
 from app.sessions.robot_session import RobotState
 import grpc
-import queue
+import asyncio
 
 class RobotControlService(control_pb_grpc.RobotControlServiceServicer):
     
-    async def __aenter__(self, session_manager:RobotSessionManager, queue:queue.Queue):
+    async def __aenter__(self, session_manager:RobotSessionManager, queue:asyncio.Queue):
         self.session_manager = session_manager
         self.queue = queue
         return self
@@ -34,7 +34,7 @@ class RobotControlService(control_pb_grpc.RobotControlServiceServicer):
         try:
             #using request and convert it to something else
             data = request.SerializeToString()
-            self.queue.put(data)
+            await self.queue.put(data)
             
             return control_pb.CommandResponse(
                 success=True,
@@ -47,4 +47,3 @@ class RobotControlService(control_pb_grpc.RobotControlServiceServicer):
                 success=False,
                 message=f"robot unreachable: {e.details()}"
             )    
-

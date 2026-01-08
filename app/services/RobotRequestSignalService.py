@@ -3,7 +3,6 @@ import app.generated.robot_request_signal_pb2_grpc as rb_signal_pb_grpc
 from app.sessions.robot_session_manager import RobotSessionManager
 from app.sessions.robot_session import RobotState, SessionChannel
 import grpc
-import queue
 import logging
 import asyncio
 from google.protobuf.json_format import MessageToDict
@@ -12,7 +11,7 @@ log = logging.getLogger(__name__)
 
 """This service is for signaling between robot and grpc-robot-gateway."""
 class RobotRequestSignalService(rb_signal_pb_grpc.RobotSignalServiceServicer):
-    async def __aenter__(self, session_manager: RobotSessionManager, queue:queue.Queue, async_resp_queue:asyncio.Queue, logger:logging.Logger):
+    async def __aenter__(self, session_manager: RobotSessionManager, queue:asyncio.Queue, async_resp_queue:asyncio.Queue, logger:logging.Logger):
         self.session_manager = session_manager
         self.queue = queue
         self.async_resp_queue = async_resp_queue
@@ -121,7 +120,7 @@ class RobotRequestSignalService(rb_signal_pb_grpc.RobotSignalServiceServicer):
                     getattr(msg, payload_type),
                     preserving_proto_field_name=True,
                 )
-                self.async_resp_queue.put_nowait(payload)
+                await self.async_resp_queue.put(payload)
                     
         except StopAsyncIteration:
             log.info(
@@ -197,14 +196,14 @@ class RobotRequestSignalService(rb_signal_pb_grpc.RobotSignalServiceServicer):
                     
                     is_success = False
                     try:
-                        item = self.queue.get(timeout=0.1)
+                        item = await asyncio.wait_for(self.queue.get(), timeout=0.1)
                         is_success = True
                         self.internal_timer += 0.1
                         msg = self._build_signal_message(item, robot_id)
                         if msg is not None:
                             yield msg
                         
-                    except queue.Empty:
+                    except asyncio.TimeoutError:
                         self.internal_timer += 0.1
                     finally:
                         if is_success:

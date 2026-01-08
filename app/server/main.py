@@ -3,7 +3,6 @@ import os
 import sys
 import logging
 import asyncio
-import queue
 
 # os.environ.setdefault("GRPC_VERBOSITY", "DEBUG")
 # os.environ.setdefault("GRPC_TRACE", "tcp,http,secure_endpoint,transport_security")
@@ -52,8 +51,8 @@ async def serve():
     robot_control_service = RobotRequestControlService.RobotRequestControlService()
     robot_signal_service = RobotRequestSignalService.RobotRequestSignalService()
     
-    command_to_robot_command = queue.Queue()
-    signal_to_robot_command = queue.Queue()
+    command_to_robot_command = asyncio.Queue()
+    signal_to_robot_command = asyncio.Queue()
     response_queue = asyncio.Queue()
     
     await service.__aenter__(session_manager, logger)
