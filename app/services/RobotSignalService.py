@@ -331,6 +331,8 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
                         is_success = True
                         self.internal_timer += 0.1
                         
+                        log.info("Response to Server!")
+                        
                         msg = await self.process_response_queue(item)
                         if msg is not None:
                             yield msg
