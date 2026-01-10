@@ -187,7 +187,7 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
 
         payload = {
             "robot_id": msg.robot_id,
-            "command": cc.command,  # enum number; 필요하면 Name(...)으로 문자열화
+            "command": signaling_pb.CommandType.Name(cc.command),
         }
         if payload_type:
             payload[payload_type] = MessageToDict(

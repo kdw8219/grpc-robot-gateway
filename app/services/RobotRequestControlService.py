@@ -37,32 +37,34 @@ class RobotRequestControlService(rb_control_pb_grpc.RobotRequestControlServiceSe
         try:
             item = await asyncio.wait_for(self.queue.get(), timeout=0.1)
             
-            payload_type = item.WhichOneof("payload")
+            payload_type = item.get("command")
             
-            if payload_type == "move":
+            print("get item:", item)
+            
+            if payload_type == "MOVE":
                 return rb_control_pb.RobotCommandResponse(
                     has_command = True,
-                    command = item.command,
-                    move = item.move
+                    command = item.get('command'),
+                    move = item.get('move')
                 )
 
-            elif payload_type == "set_speed":
+            elif payload_type == "SET_SPEED":
                 return rb_control_pb.RobotCommandResponse(
                     has_command = True,
-                    command = item.command,
-                    set_speed = item.set_speed
+                    command = item.get('command'),
+                    set_speed = item.get('set_speed')
                 )
 
-            elif payload_type == "path_follow":
+            elif payload_type == "PATH_FOLLOW":
                 return rb_control_pb.RobotCommandResponse(
                     has_command = True,
-                    command = item.command,
-                    path_follow = item.path_follow
+                    command = item.get('command'),
+                    path_follow = item.get('path_follow')
                 )
                 
             return rb_control_pb.RobotCommandResponse(
                 has_command = True,
-                command = item.command,
+                command = item.get('command'),
             )   
         except asyncio.TimeoutError:
             self.logger.debug('no data from queue')
