@@ -91,6 +91,7 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
     # 요청 스트림을 백그라운드에서 drain 하되, RPC가 끝나면 즉시 종료
     async def drain_requests(self, robot_id, request_iterator, peer, context, first):
         log.info("Signal A drain start robot_id=%s", robot_id)
+        session = await self.session_manager.get_or_create(robot_id)
         try:
             async def iterate():
                 yield first
@@ -100,6 +101,9 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
             await self.session_manager.update_heartbeat(robot_id, SessionChannel.SERVER_SIGNAL)
 
             async for msg in iterate():
+                if session.gateway_stream is not context:
+                    log.info("drain: outdated stream for robot_id=%s, closing", robot_id)
+                    break                
                 command_type =msg.WhichOneof("payload")
                 log.info("Signal A msg robot_id=%s payload_set=%s", robot_id, command_type)
                 # after msg done, send it to robot session
@@ -320,6 +324,13 @@ class RobotSignalService(signaling_pb_grpc.RobotSignalServiceServicer):
                             robot_id,
                             peer,
                             session.state,
+                        )
+                        break
+                    if session.gateway_stream is not context:
+                        log.info(
+                            "Signal A response: gateway stream changed robot_id=%s peer=%s",
+                            robot_id,
+                            peer,
                         )
                         break
                     
