@@ -14,7 +14,10 @@ class RobotSessionManager:
     async def get_or_create(self, robot_id: str, control_stub = None) -> RobotSession:
         async with self._lock:
             if robot_id in self._sessions:
-                return self._sessions[robot_id]
+                session = self._sessions[robot_id]
+                if session.response_queue is None:
+                    session.response_queue = asyncio.Queue()
+                return session
 
             session = RobotSession(robot_id, control_stub)
             self._sessions[robot_id] = session

@@ -40,6 +40,25 @@ async def start_session_watcher(manager: RobotSessionManager):
         logger.info("Session watcher cancelled")
         raise
 
+async def start_response_dispatcher(manager: RobotSessionManager, response_queue: asyncio.Queue):
+    try:
+        while True:
+            item = await response_queue.get()
+            robot_id = item.get("robot_id")
+            if not robot_id:
+                logger.warning("Response dispatcher: missing robot_id item=%s", item)
+                continue
+
+            session = await manager.get(robot_id)
+            if not session or session.response_queue is None:
+                logger.warning("Response dispatcher: missing session for robot_id=%s", robot_id)
+                continue
+
+            await session.response_queue.put(item)
+    except asyncio.CancelledError:
+        logger.info("Response dispatcher cancelled")
+        raise
+
 async def serve():
     print("Starting gRPC Robot API Gateway Server...")
     
@@ -54,6 +73,9 @@ async def serve():
     command_to_robot_command = asyncio.Queue()
     signal_to_robot_command = asyncio.Queue()
     response_queue = asyncio.Queue()
+    response_dispatcher = asyncio.create_task(
+        start_response_dispatcher(session_manager, response_queue)
+    )
     
     await service.__aenter__(session_manager, logger)
     await signal_service.__aenter__(session_manager, command_to_robot_command, signal_to_robot_command, response_queue)
@@ -83,6 +105,7 @@ async def serve():
         await robot_control_service.__aexit__(None,None,None)
         await robot_signal_service.__aexit__(None,None,None)
         async_controller.cancel()
+        response_dispatcher.cancel()
         
     print("gRPC Robot API Gateway Server stopped.")
 
