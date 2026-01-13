@@ -195,7 +195,10 @@ class RobotRequestSignalService(rb_signal_pb_grpc.RobotSignalServiceServicer):
                         break
                     
                     try:
-                        item = await asyncio.wait_for(self.queue.get(), timeout=0.1)
+                        if session.robot_signal_queue is None:
+                            await asyncio.sleep(0.1)
+                            continue
+                        item = await asyncio.wait_for(session.robot_signal_queue.get(), timeout=0.1)
                         self.internal_timer += 0.1
                         msg = self._build_signal_message(item, robot_id)
                         if msg is not None:

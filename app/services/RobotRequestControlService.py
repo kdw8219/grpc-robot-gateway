@@ -35,7 +35,11 @@ class RobotRequestControlService(rb_control_pb_grpc.RobotRequestControlServiceSe
             )
 
         try:
-            item = await asyncio.wait_for(self.queue.get(), timeout=0.1)
+            if session.command_queue is None:
+                return rb_control_pb.RobotCommandResponse(
+                    has_command=False,
+                )
+            item = await asyncio.wait_for(session.command_queue.get(), timeout=0.1)
             
             payload_type = item.get("command")
             
