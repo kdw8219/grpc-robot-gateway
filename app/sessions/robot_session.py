@@ -1,4 +1,5 @@
 from enum import Enum
+import asyncio
 import time
 import typing
 
@@ -32,6 +33,8 @@ class RobotSession:
         self.robot_stream = None       # robot → grpc 서버
         self.gateway_stream = None     # gateway → grpc 서버
         self.command_stream = None     # robot control rpc stream (robot rpc test 필요?)
+        # Per-robot response queue for gateway/robot signaling
+        self.response_queue: asyncio.Queue | None = asyncio.Queue()
 
         
     def touch(self, channel: SessionChannel):
