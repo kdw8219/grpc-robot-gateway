@@ -59,6 +59,44 @@ async def start_response_dispatcher(manager: RobotSessionManager, response_queue
         logger.info("Response dispatcher cancelled")
         raise
 
+async def start_robot_signal_dispatcher(manager: RobotSessionManager, signal_queue: asyncio.Queue):
+    try:
+        while True:
+            item = await signal_queue.get()
+            robot_id = item.get("robot_id")
+            if not robot_id:
+                logger.warning("Signal dispatcher: missing robot_id item=%s", item)
+                continue
+
+            session = await manager.get(robot_id)
+            if not session or session.robot_signal_queue is None:
+                logger.warning("Signal dispatcher: missing session for robot_id=%s", robot_id)
+                continue
+
+            await session.robot_signal_queue.put(item)
+    except asyncio.CancelledError:
+        logger.info("Signal dispatcher cancelled")
+        raise
+
+async def start_command_dispatcher(manager: RobotSessionManager, command_queue: asyncio.Queue):
+    try:
+        while True:
+            item = await command_queue.get()
+            robot_id = item.get("robot_id")
+            if not robot_id:
+                logger.warning("Command dispatcher: missing robot_id item=%s", item)
+                continue
+
+            session = await manager.get(robot_id)
+            if not session or session.command_queue is None:
+                logger.warning("Command dispatcher: missing session for robot_id=%s", robot_id)
+                continue
+
+            await session.command_queue.put(item)
+    except asyncio.CancelledError:
+        logger.info("Command dispatcher cancelled")
+        raise
+
 async def serve():
     print("Starting gRPC Robot API Gateway Server...")
     
@@ -75,6 +113,12 @@ async def serve():
     response_queue = asyncio.Queue()
     response_dispatcher = asyncio.create_task(
         start_response_dispatcher(session_manager, response_queue)
+    )
+    signal_dispatcher = asyncio.create_task(
+        start_robot_signal_dispatcher(session_manager, signal_to_robot_command)
+    )
+    command_dispatcher = asyncio.create_task(
+        start_command_dispatcher(session_manager, command_to_robot_command)
     )
     
     await service.__aenter__(session_manager, logger)
@@ -106,6 +150,8 @@ async def serve():
         await robot_signal_service.__aexit__(None,None,None)
         async_controller.cancel()
         response_dispatcher.cancel()
+        signal_dispatcher.cancel()
+        command_dispatcher.cancel()
         
     print("gRPC Robot API Gateway Server stopped.")
 

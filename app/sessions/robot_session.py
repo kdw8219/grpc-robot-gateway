@@ -35,6 +35,9 @@ class RobotSession:
         self.command_stream = None     # robot control rpc stream (robot rpc test 필요?)
         # Per-robot response queue for gateway/robot signaling
         self.response_queue: asyncio.Queue | None = asyncio.Queue()
+        # Per-robot queues for robot-bound requests
+        self.robot_signal_queue: asyncio.Queue | None = asyncio.Queue()
+        self.command_queue: asyncio.Queue | None = asyncio.Queue()
 
         
     def touch(self, channel: SessionChannel):

@@ -17,6 +17,10 @@ class RobotSessionManager:
                 session = self._sessions[robot_id]
                 if session.response_queue is None:
                     session.response_queue = asyncio.Queue()
+                if session.robot_signal_queue is None:
+                    session.robot_signal_queue = asyncio.Queue()
+                if session.command_queue is None:
+                    session.command_queue = asyncio.Queue()
                 return session
 
             session = RobotSession(robot_id, control_stub)
