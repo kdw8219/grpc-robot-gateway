@@ -54,6 +54,11 @@ class RobotApiGatewayStub(object):
                 request_serializer=robot__api__gateway__pb2.PosRequest.SerializeToString,
                 response_deserializer=robot__api__gateway__pb2.PosResponse.FromString,
                 _registered_method=True)
+        self.MapUpload = channel.unary_unary(
+                '/robot.api.gateway.v1.RobotApiGateway/MapUpload',
+                request_serializer=robot__api__gateway__pb2.MapUploadRequest.SerializeToString,
+                response_deserializer=robot__api__gateway__pb2.MapUploadResponse.FromString,
+                _registered_method=True)
 
 
 class RobotApiGatewayServicer(object):
@@ -87,6 +92,13 @@ class RobotApiGatewayServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def MapUpload(self, request, context):
+        """map upload (occupancy grid)
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_RobotApiGatewayServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -109,6 +121,11 @@ def add_RobotApiGatewayServicer_to_server(servicer, server):
                     servicer.Pos,
                     request_deserializer=robot__api__gateway__pb2.PosRequest.FromString,
                     response_serializer=robot__api__gateway__pb2.PosResponse.SerializeToString,
+            ),
+            'MapUpload': grpc.unary_unary_rpc_method_handler(
+                    servicer.MapUpload,
+                    request_deserializer=robot__api__gateway__pb2.MapUploadRequest.FromString,
+                    response_serializer=robot__api__gateway__pb2.MapUploadResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -219,6 +236,33 @@ class RobotApiGateway(object):
             '/robot.api.gateway.v1.RobotApiGateway/Pos',
             robot__api__gateway__pb2.PosRequest.SerializeToString,
             robot__api__gateway__pb2.PosResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def MapUpload(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/robot.api.gateway.v1.RobotApiGateway/MapUpload',
+            robot__api__gateway__pb2.MapUploadRequest.SerializeToString,
+            robot__api__gateway__pb2.MapUploadResponse.FromString,
             options,
             channel_credentials,
             insecure,

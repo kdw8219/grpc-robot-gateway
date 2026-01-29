@@ -12,6 +12,7 @@ from app.sessions.robot_session import SessionChannel
 import grpc
 import app.generated.robot_request_control_pb2_grpc as rb_control_pb_grpc
 import logging
+import base64
 
 class RobotGatewayService(pb_grpc.RobotApiGatewayServicer):
     
@@ -179,6 +180,37 @@ class RobotGatewayService(pb_grpc.RobotApiGatewayServicer):
     
         except Exception as e:
             return pb.StatusResponse(
+                success=False,
+                result=''
+            )
+
+    async def MapUpload(self, request, context):
+        try:
+            data_bytes = bytes(request.data)
+            json_data = {
+                'robot_id': request.robot_id,
+                'width': int(request.width),
+                'height': int(request.height),
+                'resolution': float(request.resolution),
+                'origin_x': float(request.origin_x),
+                'origin_y': float(request.origin_y),
+                'origin_z': float(request.origin_z),
+                'origin_w': float(request.origin_w),
+                'data_b64': base64.b64encode(data_bytes).decode('ascii'),
+                'timestamp_ms': int(request.timestamp_ms),
+                'frame_id': request.frame_id,
+                'timestamp': datetime.datetime.now().isoformat(),
+            }
+            await conn_service.map_service(self.kafka, json_data)
+            
+            return pb.MapUploadResponse(
+                success=True,
+                result='Success',
+            )
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            return pb.MapUploadResponse(
                 success=False,
                 result=''
             )

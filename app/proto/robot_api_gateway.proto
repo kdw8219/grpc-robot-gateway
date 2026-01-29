@@ -15,6 +15,9 @@ service RobotApiGateway {
     //status
     rpc Pos(PosRequest) returns (PosResponse);
 
+    //map upload (occupancy grid)
+    rpc MapUpload(MapUploadRequest) returns (MapUploadResponse);
+
     //control
     //rpc RobotControl(stream RobotControlRequest) returns (RobotControlResponse);
 
@@ -70,4 +73,23 @@ message PosRequest {
 message PosResponse {
     bool success = 1;
     string result=2;
+}
+
+message MapUploadRequest {
+    string robot_id = 1;
+    uint32 width = 2;
+    uint32 height = 3;
+    float resolution = 4;
+    double origin_x = 5;
+    double origin_y = 6;
+    double origin_z = 7;
+    double origin_w = 8;
+    bytes data = 9;
+    int64 timestamp_ms = 10;
+    string frame_id = 11;
+}
+
+message MapUploadResponse {
+    bool success = 1;
+    string result = 2;
 }
