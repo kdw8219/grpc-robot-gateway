@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     HEARTBEAT_TOPIC: str
     POS_TOPIC: str
     STATUS_TOPIC: str
+    MAP_TOPIC: str
     
     class Config:
         env_file = ".env"

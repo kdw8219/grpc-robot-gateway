@@ -73,3 +73,8 @@ async def status_service(kafka: AIOKafkaProducer, data:HeartbeatInput):
     topic = settings.STATUS_TOPIC
     print(f"works here?! {datetime.datetime.now()}")
     asyncio.create_task(kafka_client.send_kafka_heartbeat(kafka, topic, data)) # 동일 스레드 내 동작
+
+async def map_service(kafka: AIOKafkaProducer, data:dict):
+    topic = settings.MAP_TOPIC
+    print(f"works here?! {datetime.datetime.now()}")
+    asyncio.create_task(kafka_client.send_kafka_message(kafka, topic, data))
